@@ -142,6 +142,34 @@ def _cmd_evolve(args) -> int:
     return 0
 
 
+def _cmd_walkforward(args) -> int:
+    from keel.env import load_env
+    from keel.walkforward import run_walkforward
+
+    load_env()
+    v = run_walkforward(args.dir, train=args.train, test=args.test)
+    if "error" in v:
+        print(v["error"])
+        return 1
+    print(
+        f"walk-forward: {v['n_folds']} folds, {v['oos_days']} out-of-sample days | "
+        f"OOS return {v['oos_total_return']:+.2%}, OOS Sharpe {v['oos_sharpe']}"
+    )
+    print(f"bootstrap p-value on the OUT-OF-SAMPLE curve: {v['pvalue']}")
+    if v["beats_luck"]:
+        print(
+            "VERDICT: the adaptive system beat luck out-of-sample here. Real, but "
+            "keep accumulating folds — this is the number that gates live money."
+        )
+    else:
+        print(
+            "VERDICT: no out-of-sample edge yet. This is the honest state of the "
+            "system today; adding features will not change it — finding signal will."
+        )
+    print("(appended to edge_ledger.jsonl — the truth tracked over time)")
+    return 0
+
+
 def _cmd_llm(args) -> int:
     from keel.env import load_env
     from keel.llm import (
@@ -275,6 +303,12 @@ def main(argv: list[str] | None = None) -> int:
     p_ev.add_argument("--prefer", default=None, help="ollama | claude | gemini")
     p_ev.add_argument("--n", type=int, default=5, help="LLM proposals to request")
     p_ev.set_defaults(func=_cmd_evolve)
+
+    p_wf = sub.add_parser("walkforward", help="honest out-of-sample test of the adaptive system")
+    p_wf.add_argument("--dir", default="data")
+    p_wf.add_argument("--train", type=int, default=60, help="training sessions per fold")
+    p_wf.add_argument("--test", type=int, default=20, help="out-of-sample sessions per fold")
+    p_wf.set_defaults(func=_cmd_walkforward)
 
     p_llm = sub.add_parser("llm", help="LLM provider status / model recommendation / test")
     p_llm.add_argument(
