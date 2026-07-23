@@ -47,6 +47,8 @@ Decision = Enter | Hold | Exit | None
 
 class Strategy(Protocol):
     warmup: int
+    lane: str  # "intraday" (flattened at session close) or "swing" (held overnight)
+    session_flat: bool  # True => the engine force-exits at the last bar of a session
 
     def on_bar(self, history: Bars, position: Position | None) -> Decision: ...
 
@@ -54,6 +56,9 @@ class Strategy(Protocol):
 class SmaCross:
     """Long when fast SMA > slow SMA, exit on cross-down, initial stop at the
     recent swing low. Plumbing-test strategy — no edge claimed."""
+
+    lane = "swing"
+    session_flat = False
 
     def __init__(self, fast: int = 20, slow: int = 50, stop_lookback: int = 10):
         if fast >= slow:
