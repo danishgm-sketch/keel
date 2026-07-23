@@ -80,6 +80,13 @@ def _cmd_ui(args) -> int:
     return 0
 
 
+def _cmd_app(args) -> int:
+    from keel.app import run_app
+
+    run_app(args.dir, port=args.port)
+    return 0
+
+
 def _cmd_trade(args) -> int:
     data = load_dir(args.dir)
     if not data:
@@ -157,6 +164,11 @@ def main(argv: list[str] | None = None) -> int:
     p_ui.add_argument("--port", type=int, default=8787)
     p_ui.add_argument("--no-browser", action="store_true", dest="no_browser")
     p_ui.set_defaults(func=_cmd_ui)
+
+    p_app = sub.add_parser("app", help="open the desktop app (native window if available)")
+    p_app.add_argument("--dir", default="data", help="data directory to browse")
+    p_app.add_argument("--port", type=int, default=None)
+    p_app.set_defaults(func=_cmd_app)
 
     args = parser.parse_args(argv)
     return args.func(args)

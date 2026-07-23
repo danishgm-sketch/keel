@@ -51,6 +51,20 @@ included strategies are honest *hypotheses*, not proven edges. Finding the edge
 is the research work in `RESEARCH_BETS.md`; this is the machine that tests it
 without lying to you.
 
+## Just open it (desktop app)
+
+No terminal needed after the first launch:
+
+- **Windows** — double-click **`Keel.bat`**. The first run installs Keel (a
+  minute), then a native Keel window opens. Want an icon? Double-click
+  **`Create Desktop Shortcut.vbs`** once and you'll get a **Keel** icon on your
+  Desktop — click it any time to open the app (no console window).
+- **macOS** — double-click **`Keel.command`**.
+
+The app opens in its own window (via pywebview, installed by `.[desktop]`). If
+that package isn't present it falls back to your default browser, so it always
+works. Under the hood it's the same dashboard as `keel ui`.
+
 ## Real data (Alpaca) & the dashboard
 
 Bring your own Alpaca keys — copy `.env.example` to `.env` and fill it in. **`.env`

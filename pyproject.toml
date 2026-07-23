@@ -13,9 +13,13 @@ dependencies = ["numpy>=1.26"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.6"]
+desktop = ["pywebview>=5.0"]
 
 [project.scripts]
 keel = "keel.cli:main"
+
+[project.gui-scripts]
+keel-app = "keel.app:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -27,6 +31,11 @@ pythonpath = ["src"]
 [tool.ruff]
 line-length = 100
 src = ["src", "tests"]
+
+[tool.ruff.lint.per-file-ignores]
+# ui.py embeds a self-contained HTML/CSS/JS page as a string literal; the web
+# asset is intentionally not wrapped to the Python line length.
+"src/keel/ui.py" = ["E501"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]

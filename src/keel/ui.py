@@ -169,10 +169,10 @@ def run_ui(data_dir: str | Path = "data", port: int = 8787, open_browser: bool =
     url = f"http://127.0.0.1:{port}"
     print(f"Keel dashboard on {url}  (data dir: {data_dir})  —  Ctrl+C to stop")
     if open_browser:
-        try:
+        import contextlib
+
+        with contextlib.suppress(Exception):
             webbrowser.open(url)
-        except Exception:
-            pass
     try:
         server.serve_forever()
     except KeyboardInterrupt:
