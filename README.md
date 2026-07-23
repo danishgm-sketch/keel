@@ -1,9 +1,14 @@
 # Keel
 
-A small, honest trading-research kit. Successor to Bastion, built from its
+An honest systematic-trading platform — research to live execution — where every
+dollar of risk is earned by evidence. Successor to Bastion, built from its
 audit: the discipline stays, the cathedral goes.
 
-## What it is
+Today this repo is the honest research core (Phase 0). The full vision — where it
+goes and the realistic money-making case — is in **[VISION.md](VISION.md)**; the
+evidence-gated path is in **[ROADMAP.md](ROADMAP.md)**.
+
+## What it is (today)
 
 - **PIT-first data**: the tradeable universe carries dated membership
   (`universe.py`); there is no code path that backfills today's list into the
