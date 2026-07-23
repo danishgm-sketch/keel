@@ -153,15 +153,15 @@ def total_ram_gb() -> float:
 
 
 def recommend_ollama_model(ram_gb: float | None = None) -> str:
-    """Pick an instruct model that comfortably fits the machine's RAM."""
+    """Pick a Qwen3 model (the 2026 local agentic-reasoning pick) sized to RAM."""
     ram = ram_gb if ram_gb is not None else total_ram_gb()
     if ram < 8:
-        return "llama3.2:3b"
+        return "qwen3:4b"
     if ram < 16:
-        return "qwen2.5:7b-instruct"
+        return "qwen3:8b"
     if ram < 32:
-        return "qwen2.5:14b-instruct"
-    return "qwen2.5:32b-instruct"
+        return "qwen3:14b"
+    return "qwen3:30b"
 
 
 def pick_provider(prefer: str | None = None):

@@ -92,23 +92,36 @@ again out-of-sample. Survivors are written to `roster.json`; the champion become
 what the live bot runs. If nothing survives, there's no champion — and that's the
 honest, correct outcome. It never rewrites risk management or tunes to noise.
 
-### The LLM brain (Ollama / Claude / Gemini)
+### The AI brain (a local open-source LLM, woven in)
 
-An LLM can widen that search. It **proposes** candidate strategy variants inside a
-locked schema; every proposal still faces the same statistical gate. It never
-places an order, touches risk, or promotes itself — an idea generator behind a
-locked door.
+Keel and an open-source LLM are one program. A local reasoning model — **Qwen3**
+via Ollama is the 2026 pick — is fused into the loop two ways:
+
+- **Proposer** (`advisor`): suggests candidate strategy variants inside a locked
+  schema; every proposal still faces the bootstrap + FDR gate.
+- **Brain** (`brain`): every cycle it reads the *whole* live state — account,
+  positions, the decision journal, the edge ledger (is there a proven edge yet?),
+  the regime, the candidate shortlist, the validated roster — and recommends a
+  posture. The monitor shows its read live.
+
+Its authority is deliberately bounded so intelligence never becomes recklessness:
+it can set posture to **defensive** (which only ever *reduces* trades and
+positions — never loosens risk), and it can favor/avoid only strategies already
+in the validated playbook. It cannot invent an edge, size a position, or place an
+order. A mind that can only make the system more careful and only choose among
+what it has already proven.
 
 ```bash
-keel llm recommend      # picks an Ollama model for your RAM + the pull command
-ollama pull <model>     # e.g. qwen2.5:14b-instruct
+keel llm recommend      # picks a Qwen3 model for your RAM + the pull command
+ollama pull qwen3       # run it locally: private, free
 keel llm status         # which provider is active (local-first)
+keel brain              # one AI reasoning pass over the current system state
 keel evolve --use-llm   # LLM proposes variants; the gate still decides
 ```
 
 Local Ollama is preferred (private, free); Claude (`ANTHROPIC_API_KEY`) and
-Gemini (`GEMINI_API_KEY`/`GOOGLE_API_KEY`) are automatic fallbacks if their keys
-are in your environment.
+Gemini (`GEMINI_API_KEY`/`GOOGLE_API_KEY`) are automatic fallbacks. The bot trades
+safely with no model connected — you just lose the AI read.
 
 ## Just open it (desktop app)
 

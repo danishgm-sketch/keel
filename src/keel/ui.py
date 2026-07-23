@@ -171,6 +171,16 @@ th:first-child,td:first-child{text-align:left}th{color:var(--dim);font-weight:50
 <script>
 async function kill(){await fetch('/api/live/kill',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});poll();}
 function pct(x){return (x*100).toFixed(2)+'%';}
+function brainPanel(b){if(!b)return '';
+  if(!b.available)return `<div class="panel"><h3>AI brain</h3><span class="pill dim">no model connected</span>
+    <div class="note">Run a local model (e.g. <code>ollama pull qwen3</code>) or set an API key; the bot trades safely without it, just without the AI read.</div></div>`;
+  const r=b.recommendation||{};const def=r.risk_posture==='defensive';
+  const pp=def?'<span class="pill off">DEFENSIVE</span>':'<span class="pill on">NORMAL</span>';
+  const fav=(r.favor||[]).join(', ')||'—';const avo=(r.avoid||[]).join(', ')||'—';
+  return `<div class="panel"><h3>AI brain — ${b.provider||''}</h3>
+    <div class="statusrow">${pp}<span class="pill dim">regime: ${r.regime||'?'}</span>
+      <span class="pill dim">favor: ${fav}</span><span class="pill dim">avoid: ${avo}</span></div>
+    <div class="muted">${r.rationale||''}</div></div>`;}
 async function poll(){let r;try{r=await (await fetch('/api/live/status')).json();}catch(e){return;}
   const m=document.getElementById('main');
   if(!r.enabled){m.innerHTML=`<div class="panel"><span class="pill dim">BOT OFFLINE</span>
@@ -195,6 +205,7 @@ async function poll(){let r;try{r=await (await fetch('/api/live/status')).json()
      <div class="card"><div class="k">Market scanned</div><div class="v">${(r.universe_size||0).toLocaleString()}</div></div>
      <div class="card"><div class="k">Candidates now</div><div class="v">${cand.length}</div></div>
    </div>
+   ${brainPanel(r.brain)}
    <div class="grid2">
      <div class="panel"><h3>Open positions</h3><table><thead><tr><th>Sym</th><th>Qty</th><th>Entry</th><th>uP&L</th></tr></thead><tbody>${posRows}</tbody></table></div>
      <div class="panel"><h3>Today's activity (the bot's decisions)</h3><table><thead><tr><th>Time</th><th>Event</th><th>Sym</th><th>Via / why</th></tr></thead><tbody>${jrows}</tbody></table></div>

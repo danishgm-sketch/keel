@@ -63,8 +63,8 @@ def test_propose_variants_handles_no_llm():
 
 # --- llm helpers (no network) ---
 def test_recommend_model_scales_with_ram():
-    assert "3b" in recommend_ollama_model(4)
-    assert recommend_ollama_model(64).endswith("32b-instruct")
+    assert "4b" in recommend_ollama_model(4)
+    assert recommend_ollama_model(64).endswith("30b")
 
 
 def test_pick_provider_none_when_nothing_available(monkeypatch):

@@ -170,6 +170,23 @@ def _cmd_walkforward(args) -> int:
     return 0
 
 
+def _cmd_brain(args) -> int:
+    from keel.brain import run_brain_cycle
+    from keel.env import load_env
+
+    load_env()
+    result = run_brain_cycle(args.dir, status={})
+    if not result.get("available"):
+        print("no LLM available — run Ollama (e.g. `ollama pull qwen3`) or set an API key")
+        print("the bot still trades safely without the brain, just without the AI read")
+        return 1
+    rec = result["recommendation"]
+    print(f"[{result.get('provider')}] regime={rec['regime']} posture={rec['risk_posture']}")
+    print(f"favor={rec['favor']} avoid={rec['avoid']}")
+    print(f"rationale: {rec['rationale']}")
+    return 0
+
+
 def _cmd_llm(args) -> int:
     from keel.env import load_env
     from keel.llm import (
@@ -309,6 +326,10 @@ def main(argv: list[str] | None = None) -> int:
     p_wf.add_argument("--train", type=int, default=60, help="training sessions per fold")
     p_wf.add_argument("--test", type=int, default=20, help="out-of-sample sessions per fold")
     p_wf.set_defaults(func=_cmd_walkforward)
+
+    p_br = sub.add_parser("brain", help="run one AI reasoning pass over the system state")
+    p_br.add_argument("--dir", default="data")
+    p_br.set_defaults(func=_cmd_brain)
 
     p_llm = sub.add_parser("llm", help="LLM provider status / model recommendation / test")
     p_llm.add_argument(

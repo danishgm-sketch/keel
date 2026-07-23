@@ -33,6 +33,8 @@ class LiveService:
         self._bars: dict = {}
         self._last_scan = 0.0
         self._universe_day: str | None = None
+        self._base_limits = (self.config.max_positions, self.config.max_new_per_day)
+        self.latest_brain: dict = {"available": False}
         self.last_status: dict = {"note": "starting"}
 
     def _ensure_broker(self) -> None:
@@ -99,6 +101,24 @@ class LiveService:
         except Exception as e:
             self._last_error(f"scan error: {e}")
 
+    def _run_brain(self) -> None:
+        """One AI reasoning pass; its recommendation can only tighten risk."""
+        from keel.brain import apply_posture, run_brain_cycle
+
+        base_mp, base_mn = self._base_limits
+        try:
+            result = run_brain_cycle(self.data_dir, self.status())
+            self.latest_brain = result
+            if result.get("available"):
+                rec = result["recommendation"]
+                mp, mn = apply_posture(base_mp, base_mn, rec["risk_posture"])
+                self.config.max_positions, self.config.max_new_per_day = mp, mn
+                self.journal.write("ai_briefing", **rec, provider=result.get("provider"))
+            else:
+                self.config.max_positions, self.config.max_new_per_day = base_mp, base_mn
+        except Exception as e:
+            self._last_error(f"brain error: {e}")
+
     def _last_error(self, msg: str) -> None:
         self.last_status = {**self.last_status, "note": msg}
 
@@ -117,6 +137,7 @@ class LiveService:
             try:
                 if time.time() - self._last_scan >= self.config.scan_seconds or not self._bars:
                     self._scan()
+                    self._run_brain()  # AI reads the fresh state and sets posture
                     self._last_scan = time.time()
                 self.last_status = self.trader.tick()
             except Exception as e:
@@ -158,6 +179,7 @@ class LiveService:
                 "top_n": self.config.top_n,
             },
             "last": self.last_status,
+            "brain": self.latest_brain,
             "journal_today": self.journal.today()[-50:],
         }
         if self.broker is not None:
