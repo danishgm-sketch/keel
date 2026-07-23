@@ -51,6 +51,24 @@ included strategies are honest *hypotheses*, not proven edges. Finding the edge
 is the research work in `RESEARCH_BETS.md`; this is the machine that tests it
 without lying to you.
 
+## Real data (Alpaca) & the dashboard
+
+Bring your own Alpaca keys — copy `.env.example` to `.env` and fill it in. **`.env`
+is gitignored and must never be committed;** the example is the only key-related
+file that belongs in the repo.
+
+```bash
+cp .env.example .env             # then paste your ALPACA_API_KEY / ALPACA_SECRET_KEY
+keel fetch AAPL MSFT TSLA --start 2024-01-01 --end 2024-03-01 --timeframe 1Min
+keel ui --dir data               # local dashboard at http://127.0.0.1:8787
+```
+
+The dashboard is a zero-dependency local web app (stdlib `http.server`, inline
+HTML/JS, offline, nothing leaves your machine). Pick a strategy, tune costs and
+turnover throttles, and it runs the book and leads with the **honest verdict** and
+the cost drag — the two things that decide a high-turnover system's fate. You can
+also fetch fresh Alpaca bars straight from the sidebar.
+
 ## Install and run
 
 ```bash
@@ -58,7 +76,9 @@ git clone <repo-url> keel && cd keel
 pip install -e ".[dev]"
 pytest
 keel run   path/to/bars.csv      # single-symbol demo (CSV: date,o,h,l,c,volume)
-keel trade path/to/csv_dir       # high-turnover multi-symbol book
+keel trade path/to/csv_dir       # high-turnover multi-symbol book (terminal)
+keel fetch AAPL --start 2024-01-01 --end 2024-03-01   # real bars from Alpaca
+keel ui                          # the local dashboard
 ```
 
 ## Layout
@@ -75,7 +95,10 @@ src/keel/
   risk.py        fixed-fractional sizing from stop
   costs.py       per-fill cost model
   stats.py       block bootstrap null, BH FDR, Sharpe
-  cli.py         keel run / keel trade
+  alpaca.py      real bars from Alpaca (data only, no orders)
+  env.py         tiny .env loader (secrets stay on your machine)
+  ui.py          local dashboard (stdlib http.server, offline)
+  cli.py         keel run / trade / fetch / ui
 ```
 
 ## Rules of the project

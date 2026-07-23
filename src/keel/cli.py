@@ -57,6 +57,29 @@ def _cmd_run(args) -> int:
     return 0
 
 
+def _cmd_fetch(args) -> int:
+    from keel.alpaca import fetch_bars, save_csv
+    from keel.env import load_env
+
+    loaded = load_env()
+    if loaded:
+        print(f"loaded credentials from {loaded}")
+    for sym in args.symbols:
+        sym = sym.upper()
+        bars = fetch_bars(sym, args.start, args.end, timeframe=args.timeframe, feed=args.feed)
+        path = save_csv(bars, args.out)
+        print(f"{sym}: {len(bars)} bars -> {path}")
+    print(f"done. run:  keel trade {args.out} --strategy rsi2")
+    return 0
+
+
+def _cmd_ui(args) -> int:
+    from keel.ui import run_ui
+
+    run_ui(args.dir, port=args.port, open_browser=not args.no_browser)
+    return 0
+
+
 def _cmd_trade(args) -> int:
     data = load_dir(args.dir)
     if not data:
@@ -117,6 +140,23 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_tr.add_argument("--per-share", type=float, default=0.0002, dest="per_share")
     p_tr.set_defaults(func=_cmd_trade)
+
+    p_f = sub.add_parser("fetch", help="download real bars from Alpaca (uses .env)")
+    p_f.add_argument("symbols", nargs="+", help="ticker symbols, e.g. AAPL MSFT")
+    p_f.add_argument("--start", required=True, help="ISO date, e.g. 2024-01-01")
+    p_f.add_argument("--end", required=True, help="ISO date, e.g. 2024-03-01")
+    p_f.add_argument(
+        "--timeframe", default="1Min", help="1Min | 5Min | 15Min | 30Min | 1Hour | 1Day"
+    )
+    p_f.add_argument("--feed", default="iex", help="iex (free) or sip (paid)")
+    p_f.add_argument("--out", default="data", help="output directory")
+    p_f.set_defaults(func=_cmd_fetch)
+
+    p_ui = sub.add_parser("ui", help="launch the local dashboard")
+    p_ui.add_argument("--dir", default="data", help="data directory to browse")
+    p_ui.add_argument("--port", type=int, default=8787)
+    p_ui.add_argument("--no-browser", action="store_true", dest="no_browser")
+    p_ui.set_defaults(func=_cmd_ui)
 
     args = parser.parse_args(argv)
     return args.func(args)
