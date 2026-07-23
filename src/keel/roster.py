@@ -127,9 +127,30 @@ def load_roster(data_dir: str | Path) -> dict | None:
 
 def active_factory(data_dir: str | Path, default_strategy: str = "rsi2"):
     """The champion strategy factory if evolution has produced one, else the
-    configured default. This is what the live trader runs."""
+    configured default. This is what a single-strategy live trader runs."""
     roster = load_roster(data_dir)
     if roster and roster.get("champion"):
         c = roster["champion"]
         return c["strategy"], build_factory(c["strategy"], c["params"])
     return default_strategy, build_factory(default_strategy, {})
+
+
+def survivor_subs(data_dir: str | Path):
+    """Validated survivors from the last evolve as (name, instance) pairs for the
+    meta-brain to choose among. Falls back to the default three if none."""
+    roster = load_roster(data_dir)
+    subs = []
+    if roster:
+        for r in roster.get("variants", []):
+            if r.get("survived"):
+                subs.append((r["strategy"], build_factory(r["strategy"], r["params"])()))
+    return subs  # empty => meta uses its defaults
+
+
+def active_meta_factory(data_dir: str | Path):
+    """Factory for the meta-brain, seeded with validated survivors when available.
+    This is the default live policy: choose the best play per symbol per moment."""
+    from keel.meta import MetaStrategy, default_subs
+
+    subs = survivor_subs(data_dir) or default_subs()
+    return lambda: MetaStrategy(subs=subs)

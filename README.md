@@ -51,14 +51,26 @@ included strategies are honest *hypotheses*, not proven edges. Finding the edge
 is the research work in `RESEARCH_BETS.md`; this is the machine that tests it
 without lying to you.
 
-## Automated paper trading (opens and runs by itself)
+## Autonomous paper trading — you watch, you don't operate
 
-Open the app and the paper bot starts on its own: during market hours it scans
-your watchlist, sizes each entry at the guarded risk fraction from its stop,
-submits **paper** orders through Alpaca, manages stops, and flattens intraday
-names near the close. The dashboard's top panel shows it live — armed/market
-state, account equity, open positions, today's activity — with an **Arm** toggle
-and a red **KILL & FLATTEN** button.
+Open the app and the bot runs itself. There is nothing to click, nothing to
+configure, nothing to launch — the UI is a **monitor, not a control panel**. Its
+only button is **KILL & FLATTEN**, because you must always be able to stop a
+running bot.
+
+Each cycle it:
+
+- **scans the whole tradable US market** from Alpaca and ranks it by liquidity,
+  carrying the top candidates forward (the fixed watchlist is gone);
+- lets the **meta-brain pick the best strategy per symbol, per moment** — it
+  scores each proven play on that name's recent behaviour and routes the decision
+  to whichever fits the current regime;
+- sizes each entry at the guarded risk fraction from its stop, submits **paper**
+  orders, enforces stops, and flattens intraday names near the close.
+
+The monitor shows it live: armed/market state, equity, open positions, the bot's
+decisions (with which strategy fired each one), how many names were scanned, and
+the live candidate shortlist.
 
 Deliberate safety lines, non-negotiable:
 

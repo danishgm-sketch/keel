@@ -50,7 +50,16 @@ class LiveTrader:
     journal: Journal
     armed: bool = False
     stops: dict[str, float] = field(default_factory=dict)
+    lanes: dict[str, str] = field(default_factory=dict)
+    _strategy: Strategy | None = None
     _last_error: str | None = None
+
+    def _strat(self) -> Strategy:
+        # Built once and reused so the meta-brain's per-symbol selections persist
+        # across ticks instead of resetting every minute.
+        if self._strategy is None:
+            self._strategy = self.make_strategy()
+        return self._strategy
 
     # --- control ---
     def arm(self) -> None:
@@ -103,16 +112,15 @@ class LiveTrader:
         account = self.broker.get_account()
         equity = float(account.get("equity", 0) or 0)
         positions = {p["symbol"]: p for p in self.broker.list_positions()}
-        strat = self.make_strategy()
-        flatten_soon = strat.session_flat and self._minutes_to_close(clock) <= max(
-            2 * self.config.poll_seconds / 60.0, 5.0
-        )
+        strat = self._strat()
+        near_close = self._minutes_to_close(clock) <= max(2 * self.config.poll_seconds / 60.0, 5.0)
         new_today = self._new_today()
         actions = 0
 
         for sym in self.config.watchlist:
             held = sym in positions and float(positions[sym].get("qty", 0)) > 0
-            if flatten_soon and held:
+            # Flatten near the close only positions opened by an intraday play.
+            if near_close and held and self.lanes.get(sym, "intraday") == "intraday":
                 self._exit(sym, "session_flat")
                 actions += 1
                 continue
@@ -143,7 +151,9 @@ class LiveTrader:
                         equity, price, decision.stop, self.config.risk_fraction
                     ).shares
                     if shares > 0:
-                        self._enter(sym, shares, price, decision.stop)
+                        chosen = getattr(strat, "last_name", None) or self.config.strategy
+                        self.lanes[sym] = getattr(strat, "lane", "intraday")
+                        self._enter(sym, shares, price, decision.stop, chosen)
                         positions[sym] = {"symbol": sym, "qty": str(shares)}
                         new_today += 1
                         actions += 1
@@ -153,10 +163,10 @@ class LiveTrader:
 
         return self.status(market_open=True, note=f"{actions} actions", equity=equity)
 
-    def _enter(self, symbol: str, shares: int, price: float, stop: float) -> None:
+    def _enter(self, symbol: str, shares: int, price: float, stop: float, via: str) -> None:
         self.broker.submit_order(symbol, shares, "buy")
         self.stops[symbol] = stop
-        self.journal.write("entry", symbol=symbol, shares=shares, price=price, stop=stop)
+        self.journal.write("entry", symbol=symbol, shares=shares, price=price, stop=stop, via=via)
 
     def _exit(self, symbol: str, reason: str) -> None:
         try:
@@ -164,6 +174,7 @@ class LiveTrader:
         except Exception as e:
             self._last_error = str(e)
         self.stops.pop(symbol, None)
+        self.lanes.pop(symbol, None)
         self.journal.write("exit", symbol=symbol, reason=reason)
 
     def status(self, market_open, note: str = "", equity: float | None = None) -> dict:
@@ -171,7 +182,7 @@ class LiveTrader:
             "armed": self.armed,
             "market_open": market_open,
             "strategy": self.config.strategy,
-            "watchlist": self.config.watchlist,
+            "candidates": len(self.config.watchlist),
             "open_stops": dict(self.stops),
             "trades_today": self._new_today(),
             "equity": equity,

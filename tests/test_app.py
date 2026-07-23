@@ -17,9 +17,10 @@ def test_serve_background_serves_and_stops(tmp_path):
     try:
         html = urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=5).read()
         assert b"<title>Keel</title>" in html
-        state = json.loads(
-            urllib.request.urlopen(f"http://127.0.0.1:{port}/api/state", timeout=5).read()
+        assert b"KILL" in html  # monitor-only page, kill switch present
+        status = json.loads(
+            urllib.request.urlopen(f"http://127.0.0.1:{port}/api/live/status", timeout=5).read()
         )
-        assert "strategies" in state
+        assert "enabled" in status  # no service passed -> {"enabled": False}
     finally:
         server.shutdown()

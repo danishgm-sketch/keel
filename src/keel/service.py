@@ -1,11 +1,10 @@
 """LiveService — the always-on brain that starts when you open Keel.
 
-Owns the broker, the trader, and a background scheduler thread that calls
-`trader.tick()` every `poll_seconds`. Degrades gracefully: if credentials or the
-network are missing the UI still runs and shows exactly why the bot isn't live.
-
-Construction is defensive on purpose — opening the app must never crash because
-the market is closed or a key is missing.
+Owns the broker, the meta-strategy trader, and a background scheduler. Each cycle
+it (re)scans the **whole tradable market** down to the most liquid candidates,
+pulls their recent bars in one batched request, and lets the meta-brain pick the
+best play per name per moment. Degrades gracefully: no keys / no network → the UI
+still runs and shows why the bot isn't live.
 """
 
 from __future__ import annotations
@@ -19,27 +18,6 @@ from keel.config import Config, load_config
 from keel.journal import Journal
 
 
-def make_live_source(config: Config):
-    """A data source for the trader: recent bars per symbol from Alpaca."""
-    from keel.alpaca import fetch_bars
-
-    def src(symbol: str):
-        end = datetime.now(UTC)
-        start = end - timedelta(days=7)
-        try:
-            return fetch_bars(
-                symbol,
-                start.date().isoformat(),
-                end.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                timeframe=config.timeframe,
-                feed=config.feed,
-            )
-        except Exception:
-            return None
-
-    return src
-
-
 class LiveService:
     def __init__(self, data_dir: str | Path):
         self.data_dir = Path(data_dir)
@@ -51,6 +29,10 @@ class LiveService:
         self.trader = None
         self._thread: threading.Thread | None = None
         self._running = False
+        self._universe: list[str] = []
+        self._bars: dict = {}
+        self._last_scan = 0.0
+        self._universe_day: str | None = None
         self.last_status: dict = {"note": "starting"}
 
     def _ensure_broker(self) -> None:
@@ -64,19 +46,61 @@ class LiveService:
             self.broker_error = str(e)
 
     def _build_trader(self) -> None:
-        from keel.roster import active_factory
+        from keel.roster import active_meta_factory
         from keel.trader import LiveTrader
 
-        name, factory = active_factory(self.data_dir, self.config.strategy)
-        self.config.strategy = name
         self.trader = LiveTrader(
             broker=self.broker,
-            data_source=make_live_source(self.config),
-            make_strategy=factory,
+            data_source=lambda sym: self._bars.get(sym),
+            make_strategy=active_meta_factory(self.data_dir),
             config=self.config,
             journal=self.journal,
             armed=bool(self.config.autostart_armed),
         )
+
+    # --- market scan (whole universe -> liquid candidates -> bars) ---
+    def _refresh_universe(self) -> None:
+        from keel.broker import tradable_symbols
+
+        today = datetime.now(UTC).date().isoformat()
+        if self._universe and self._universe_day == today:
+            return
+        try:
+            self._universe = tradable_symbols(self.broker.list_assets())
+            self._universe_day = today
+        except Exception as e:
+            self._last_error(f"universe error: {e}")
+
+    def _scan(self) -> None:
+        from keel.alpaca import fetch_bars_multi, fetch_snapshots
+        from keel.scanner import rank_candidates
+
+        cfg = self.config
+        try:
+            if cfg.universe:
+                self._refresh_universe()
+                snaps = fetch_snapshots(self._universe, feed=cfg.feed)
+                candidates = rank_candidates(
+                    snaps,
+                    min_price=cfg.min_price,
+                    min_dollar_volume=cfg.min_dollar_volume,
+                    top_n=cfg.top_n,
+                )
+                cfg.watchlist = candidates or cfg.watchlist
+            end = datetime.now(UTC)
+            start = end - timedelta(days=10)
+            self._bars = fetch_bars_multi(
+                cfg.watchlist,
+                start.date().isoformat(),
+                end.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                timeframe=cfg.timeframe,
+                feed=cfg.feed,
+            )
+        except Exception as e:
+            self._last_error(f"scan error: {e}")
+
+    def _last_error(self, msg: str) -> None:
+        self.last_status = {**self.last_status, "note": msg}
 
     def start(self) -> None:
         self._ensure_broker()
@@ -91,6 +115,9 @@ class LiveService:
     def _loop(self) -> None:
         while self._running and self.trader is not None:
             try:
+                if time.time() - self._last_scan >= self.config.scan_seconds or not self._bars:
+                    self._scan()
+                    self._last_scan = time.time()
                 self.last_status = self.trader.tick()
             except Exception as e:
                 self.last_status = {"note": f"tick error: {e}", "armed": self.trader.armed}
@@ -119,14 +146,16 @@ class LiveService:
         out = {
             "enabled": self.trader is not None,
             "broker_error": self.broker_error,
+            "mode": "whole-market" if self.config.universe else "watchlist",
+            "universe_size": len(self._universe),
+            "candidates": list(self.config.watchlist),
             "config": {
-                "strategy": self.config.strategy,
+                "strategy": "auto (meta-brain)",
                 "timeframe": self.config.timeframe,
-                "watchlist": self.config.watchlist,
                 "max_positions": self.config.max_positions,
                 "max_new_per_day": self.config.max_new_per_day,
                 "risk_fraction": self.config.risk_fraction,
-                "autostart_armed": self.config.autostart_armed,
+                "top_n": self.config.top_n,
             },
             "last": self.last_status,
             "journal_today": self.journal.today()[-50:],

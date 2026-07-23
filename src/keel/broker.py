@@ -104,3 +104,20 @@ class AlpacaBroker:
 
     def cancel_all_orders(self) -> list:
         return self._request("DELETE", "/v2/orders")  # type: ignore[return-value]
+
+    def list_assets(self) -> list:
+        """Every active, tradable US equity — the whole market."""
+        return self._request(  # type: ignore[return-value]
+            "GET", "/v2/assets?status=active&asset_class=us_equity"
+        )
+
+
+def tradable_symbols(assets: list) -> list[str]:
+    """Pure filter: symbols that are active, tradable, and not weird (no dots/
+    slashes that the data API won't like)."""
+    out = []
+    for a in assets:
+        sym = a.get("symbol", "")
+        if a.get("tradable") and a.get("status") == "active" and sym.isalpha():
+            out.append(sym)
+    return out

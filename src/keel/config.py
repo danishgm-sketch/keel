@@ -30,22 +30,31 @@ DEFAULT_WATCHLIST = [
 
 @dataclass
 class Config:
+    # Universe mode (default): scan the whole tradable market and let the scanner
+    # pick candidates. `watchlist` is only used when universe is False.
+    universe: bool = True
     watchlist: list[str] = field(default_factory=lambda: list(DEFAULT_WATCHLIST))
-    strategy: str = "rsi2"
+    strategy: str = "auto"  # "auto" = the meta-brain selects per symbol per moment
     timeframe: str = "5Min"
-    max_positions: int = 5
-    max_new_per_day: int = 15
+    max_positions: int = 8
+    max_new_per_day: int = 30
     risk_fraction: float = 0.01
     poll_seconds: int = 60
+    scan_seconds: int = 300  # how often to re-scan the whole market
+    top_n: int = 40  # candidates carried from the scan into the trader
+    min_price: float = 3.0
+    min_dollar_volume: float = 5_000_000.0
     autostart_armed: bool = True  # paper only — arms the paper loop on launch
     feed: str = "iex"
 
     def clamp(self) -> Config:
-        # Risk fraction is a guarded constant range; the UI cannot push it wild.
+        # Risk fraction is a guarded constant range; nothing can push it wild.
         self.risk_fraction = min(0.02, max(0.0025, float(self.risk_fraction)))
         self.max_positions = max(1, int(self.max_positions))
         self.max_new_per_day = max(1, int(self.max_new_per_day))
         self.poll_seconds = max(15, int(self.poll_seconds))
+        self.scan_seconds = max(60, int(self.scan_seconds))
+        self.top_n = max(5, min(200, int(self.top_n)))
         self.watchlist = [s.strip().upper() for s in self.watchlist if s.strip()]
         return self
 

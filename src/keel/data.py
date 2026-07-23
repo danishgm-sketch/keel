@@ -61,6 +61,19 @@ class Bars:
             self.volume[s],
         )
 
+    def tail(self, k: int) -> Bars:
+        """The most recent k bars (for fast recent-form scoring)."""
+        s = slice(max(0, len(self) - k), len(self))
+        return Bars(
+            self.symbol,
+            self.ts[s],
+            self.open[s],
+            self.high[s],
+            self.low[s],
+            self.close[s],
+            self.volume[s],
+        )
+
 
 def load_csv(path: str | Path, symbol: str | None = None) -> Bars:
     """Load bars from a CSV with columns: date,open,high,low,close,volume.

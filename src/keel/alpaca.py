@@ -95,6 +95,77 @@ def fetch_bars(
     return _bars_from_rows(symbol, rows)
 
 
+_SNAPSHOTS_URL = "https://data.alpaca.markets/v2/stocks/snapshots"
+_MULTIBARS_URL = "https://data.alpaca.markets/v2/stocks/bars"
+
+
+def _get(url: str, params: dict, headers: dict) -> dict:
+    full = url + "?" + urllib.parse.urlencode(params)
+    req = urllib.request.Request(full, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:  # noqa: S310 https only
+            return json.loads(resp.read().decode())
+    except urllib.error.HTTPError as e:  # pragma: no cover - network path
+        raise AlpacaError(f"Alpaca HTTP {e.code}: {e.reason}") from e
+    except urllib.error.URLError as e:  # pragma: no cover - network path
+        raise AlpacaError(f"cannot reach Alpaca: {e.reason}") from e
+
+
+def fetch_snapshots(symbols: list[str], feed: str = "iex", batch: int = 100) -> dict:
+    """Latest snapshot (price + daily bar) for many symbols, batched. Used by the
+    scanner to rank the whole market by liquidity."""
+    key, secret = credentials()
+    headers = {"APCA-API-KEY-ID": key, "APCA-API-SECRET-KEY": secret}
+    out: dict = {}
+    for i in range(0, len(symbols), batch):
+        chunk = symbols[i : i + batch]
+        data = _get(_SNAPSHOTS_URL, {"symbols": ",".join(chunk), "feed": feed}, headers)
+        out.update(data if isinstance(data, dict) else {})
+    return out
+
+
+def fetch_bars_multi(
+    symbols: list[str],
+    start: str,
+    end: str,
+    timeframe: str = "5Min",
+    feed: str = "iex",
+    batch: int = 100,
+) -> dict[str, Bars]:
+    """Recent bars for many symbols at once (one request per batch, paginated)."""
+    key, secret = credentials()
+    headers = {"APCA-API-KEY-ID": key, "APCA-API-SECRET-KEY": secret}
+    rows: dict[str, list] = {}
+    for i in range(0, len(symbols), batch):
+        chunk = symbols[i : i + batch]
+        token = None
+        while True:
+            params = {
+                "symbols": ",".join(chunk),
+                "timeframe": timeframe,
+                "start": start,
+                "end": end,
+                "feed": feed,
+                "adjustment": "all",
+                "limit": 10_000,
+            }
+            if token:
+                params["page_token"] = token
+            data = _get(_MULTIBARS_URL, params, headers)
+            for sym, bar_list in (data.get("bars") or {}).items():
+                rows.setdefault(sym, []).extend(bar_list)
+            token = data.get("next_page_token")
+            if not token:
+                break
+    out: dict[str, Bars] = {}
+    for sym, bar_rows in rows.items():
+        try:
+            out[sym] = _bars_from_rows(sym, bar_rows)
+        except AlpacaError:
+            continue
+    return out
+
+
 def save_csv(bars: Bars, out_dir: str | Path) -> Path:
     """Write bars as a `keel trade`-compatible CSV (date,open,high,low,close,volume)."""
     out = Path(out_dir)
