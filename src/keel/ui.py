@@ -99,7 +99,7 @@ def _state(data_dir: Path) -> dict:
     return {"dir": str(data_dir), "symbols": csvs, "strategies": sorted(STRATEGIES)}
 
 
-def make_handler(default_dir: Path):
+def make_handler(default_dir: Path, service=None):
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *a):  # quiet
             pass
@@ -117,6 +117,8 @@ def make_handler(default_dir: Path):
                 self._send(PAGE.encode(), ctype="text/html; charset=utf-8")
             elif self.path.startswith("/api/state"):
                 self._send(_state(default_dir))
+            elif self.path.startswith("/api/live/status"):
+                self._send(service.status() if service else {"enabled": False})
             else:
                 self._send({"error": "not found"}, code=404)
 
@@ -131,6 +133,12 @@ def make_handler(default_dir: Path):
                     self._send({"error": str(e)}, code=400)
             elif self.path.startswith("/api/fetch"):
                 self._send(self._fetch(req, default_dir))
+            elif self.path.startswith("/api/live/arm"):
+                self._send(service.arm() if service else {"enabled": False})
+            elif self.path.startswith("/api/live/disarm"):
+                self._send(service.disarm() if service else {"enabled": False})
+            elif self.path.startswith("/api/live/kill"):
+                self._send(service.kill() if service else {"enabled": False})
             else:
                 self._send({"error": "not found"}, code=404)
 
@@ -159,13 +167,18 @@ def make_handler(default_dir: Path):
     return Handler
 
 
-def run_ui(data_dir: str | Path = "data", port: int = 8787, open_browser: bool = True) -> None:
+def run_ui(
+    data_dir: str | Path = "data",
+    port: int = 8787,
+    open_browser: bool = True,
+    service=None,
+) -> None:
     from keel.env import load_env
 
     load_env()
     data_dir = Path(data_dir)
     data_dir.mkdir(parents=True, exist_ok=True)
-    server = ThreadingHTTPServer(("127.0.0.1", port), make_handler(data_dir))
+    server = ThreadingHTTPServer(("127.0.0.1", port), make_handler(data_dir, service))
     url = f"http://127.0.0.1:{port}"
     print(f"Keel dashboard on {url}  (data dir: {data_dir})  —  Ctrl+C to stop")
     if open_browser:
@@ -206,6 +219,15 @@ button.sec{background:transparent;color:var(--acc);border:1px solid var(--acc);m
 table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:right;padding:6px 8px;border-bottom:1px solid var(--edge)}
 th:first-child,td:first-child{text-align:left}th{color:var(--dim);font-weight:500}
 .muted{color:var(--dim)}.note{color:var(--dim);font-size:12px;margin-top:10px}
+.right{overflow:auto;display:flex;flex-direction:column}
+.pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;margin-right:8px}
+.pill.on{background:#0f1e14;color:var(--grn);border:1px solid #1f5a30}
+.pill.off{background:#1c1410;color:#f0b072;border:1px solid #5a3a1a}
+.pill.dim{background:#161b22;color:var(--dim);border:1px solid var(--edge)}
+.livehead{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.btns{display:flex;gap:8px}.btns button{width:auto;margin:0;padding:8px 14px}
+.kill{background:var(--red);color:#fff}.arm{background:var(--grn);color:#04210d}
+.mini{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px}
 </style></head><body>
 <header><b>KEEL</b><span>honest high-turnover book — local dashboard</span></header>
 <div class="wrap">
@@ -228,7 +250,10 @@ th:first-child,td:first-child{text-align:left}th{color:var(--dim);font-weight:50
   <div class="note" id="fetchmsg"></div>
   <div class="note" id="symlist"></div>
 </aside>
-<main id="main"><p class="muted">Pick a strategy and click <b>Run book</b>. Or fetch real bars from Alpaca first (needs your .env).</p></main>
+<div class="right">
+<section id="livebar" class="panel">connecting to bot…</section>
+<main id="main"><p class="muted">Above is your live paper bot. Below: research — pick a strategy and click <b>Run book</b>, or fetch real bars first.</p></main>
+</div>
 </div>
 <script>
 const $=id=>document.getElementById(id);
@@ -276,5 +301,32 @@ function tradeTable(t){if(!t.length)return '<p class="muted">no trades</p>';
   const rows=t.slice(0,60).map(x=>`<tr><td>${x.symbol}</td><td class="muted">${x.lane}</td><td class="muted">${x.reason}</td>
     <td>${x.entry}</td><td>${x.exit}</td><td>${x.shares}</td><td class="${x.pnl>=0?'pos':'neg'}">${x.pnl}</td></tr>`).join('');
   return `<table><thead><tr><th>Symbol</th><th>Lane</th><th>Exit</th><th>Entry</th><th>Exit px</th><th>Shares</th><th>P&L</th></tr></thead><tbody>${rows}</tbody></table>`;}
-loadState();
+async function liveAction(path){await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});pollLive();}
+async function pollLive(){let r;try{r=await (await fetch('/api/live/status')).json();}catch(e){return;}
+  const el=$('livebar');
+  if(!r.enabled){el.innerHTML=`<div class="livehead"><div><span class="pill dim">BOT OFFLINE</span></div></div>
+    <div class="note">${r.broker_error||'Live bot not running. Launch via the desktop app (Keel.bat) with your .env present.'}</div>`;return;}
+  const last=r.last||{};const armed=last.armed;const mo=last.market_open;
+  const acct=r.account||{};const pos=r.positions||[];const jt=r.journal_today||[];
+  const armPill=armed?'<span class="pill on">ARMED</span>':'<span class="pill off">DISARMED</span>';
+  const mkt=mo===true?'<span class="pill on">MARKET OPEN</span>':mo===false?'<span class="pill dim">MARKET CLOSED</span>':'<span class="pill dim">—</span>';
+  const btns=armed?`<button class="sec" onclick="liveAction('/api/live/disarm')">Disarm</button><button class="kill" onclick="liveAction('/api/live/kill')">KILL &amp; FLATTEN</button>`
+    :`<button class="arm" onclick="liveAction('/api/live/arm')">Arm bot</button>`;
+  const cfg=r.config||{};
+  const posRows=pos.length?pos.map(p=>`<tr><td>${p.symbol}</td><td>${p.qty}</td><td>${(+p.avg_entry_price).toFixed(2)}</td><td class="${(+p.unrealized_pl)>=0?'pos':'neg'}">${(+p.unrealized_pl).toFixed(2)}</td></tr>`).join(''):'<tr><td colspan=4 class="muted">flat</td></tr>';
+  const jrows=jt.slice(-8).reverse().map(e=>`<tr><td>${(e.ts||'').slice(11,19)}</td><td>${e.kind}</td><td>${e.symbol||''}</td><td class="muted">${e.reason||e.note||''}</td></tr>`).join('')||'<tr><td colspan=4 class="muted">no activity yet</td></tr>';
+  el.innerHTML=`<div class="livehead"><div>${armPill}${mkt}<span class="pill dim">${cfg.strategy||''} · ${cfg.timeframe||''}</span></div><div class="btns">${btns}</div></div>
+   <div class="cards" style="margin-top:14px">
+     <div class="card"><div class="k">Equity</div><div class="v">${acct.equity?(+acct.equity).toLocaleString():'—'}</div></div>
+     <div class="card"><div class="k">Buying power</div><div class="v">${acct.buying_power?(+acct.buying_power).toLocaleString():'—'}</div></div>
+     <div class="card"><div class="k">Open positions</div><div class="v">${pos.length}</div></div>
+     <div class="card"><div class="k">Trades today</div><div class="v">${last.trades_today??0}</div></div>
+   </div>
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
+    <div><div class="mini">Positions</div><table><thead><tr><th>Sym</th><th>Qty</th><th>Entry</th><th>uP&L</th></tr></thead><tbody>${posRows}</tbody></table></div>
+    <div><div class="mini">Today's activity</div><table><thead><tr><th>Time</th><th>Event</th><th>Sym</th><th>Note</th></tr></thead><tbody>${jrows}</tbody></table></div>
+   </div>
+   ${last.note?`<div class="note">${last.note}</div>`:''}`;
+}
+loadState();pollLive();setInterval(pollLive,5000);
 </script></body></html>"""

@@ -28,20 +28,29 @@ def find_free_port() -> int:
         return s.getsockname()[1]
 
 
-def serve_background(data_dir: Path, port: int) -> ThreadingHTTPServer:
-    server = ThreadingHTTPServer(("127.0.0.1", port), make_handler(data_dir))
+def serve_background(data_dir: Path, port: int, service=None) -> ThreadingHTTPServer:
+    server = ThreadingHTTPServer(("127.0.0.1", port), make_handler(data_dir, service))
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server
 
 
 def run_app(data_dir: str | Path = "data", port: int | None = None) -> None:
     from keel.env import load_env
+    from keel.service import LiveService
 
     load_env()
     data_dir = Path(data_dir)
     data_dir.mkdir(parents=True, exist_ok=True)
+
+    # Opening Keel starts the paper bot (auto-arms per config; paper only).
+    import contextlib
+
+    service = LiveService(data_dir)
+    with contextlib.suppress(Exception):  # UI still opens and explains any failure
+        service.start()
+
     port = port or find_free_port()
-    server = serve_background(data_dir, port)
+    server = serve_background(data_dir, port, service)
     url = f"http://127.0.0.1:{port}"
 
     try:

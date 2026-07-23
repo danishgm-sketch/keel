@@ -1,0 +1,155 @@
+"""LiveService — the always-on brain that starts when you open Keel.
+
+Owns the broker, the trader, and a background scheduler thread that calls
+`trader.tick()` every `poll_seconds`. Degrades gracefully: if credentials or the
+network are missing the UI still runs and shows exactly why the bot isn't live.
+
+Construction is defensive on purpose — opening the app must never crash because
+the market is closed or a key is missing.
+"""
+
+from __future__ import annotations
+
+import threading
+import time
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+
+from keel.config import Config, load_config
+from keel.journal import Journal
+
+
+def make_live_source(config: Config):
+    """A data source for the trader: recent bars per symbol from Alpaca."""
+    from keel.alpaca import fetch_bars
+
+    def src(symbol: str):
+        end = datetime.now(UTC)
+        start = end - timedelta(days=7)
+        try:
+            return fetch_bars(
+                symbol,
+                start.date().isoformat(),
+                end.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                timeframe=config.timeframe,
+                feed=config.feed,
+            )
+        except Exception:
+            return None
+
+    return src
+
+
+class LiveService:
+    def __init__(self, data_dir: str | Path):
+        self.data_dir = Path(data_dir)
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+        self.config: Config = load_config(self.data_dir)
+        self.journal = Journal(self.data_dir / "journal.jsonl")
+        self.broker = None
+        self.broker_error: str | None = None
+        self.trader = None
+        self._thread: threading.Thread | None = None
+        self._running = False
+        self.last_status: dict = {"note": "starting"}
+
+    def _ensure_broker(self) -> None:
+        try:
+            from keel.broker import AlpacaBroker
+
+            self.broker = AlpacaBroker()
+            self.broker_error = None
+        except Exception as e:
+            self.broker = None
+            self.broker_error = str(e)
+
+    def _build_trader(self) -> None:
+        from keel.roster import active_factory
+        from keel.trader import LiveTrader
+
+        name, factory = active_factory(self.data_dir, self.config.strategy)
+        self.config.strategy = name
+        self.trader = LiveTrader(
+            broker=self.broker,
+            data_source=make_live_source(self.config),
+            make_strategy=factory,
+            config=self.config,
+            journal=self.journal,
+            armed=bool(self.config.autostart_armed),
+        )
+
+    def start(self) -> None:
+        self._ensure_broker()
+        if self.broker is None:
+            self.last_status = {"note": self.broker_error or "no broker", "armed": False}
+            return
+        self._build_trader()
+        self._running = True
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self._thread.start()
+
+    def _loop(self) -> None:
+        while self._running and self.trader is not None:
+            try:
+                self.last_status = self.trader.tick()
+            except Exception as e:
+                self.last_status = {"note": f"tick error: {e}", "armed": self.trader.armed}
+            time.sleep(self.config.poll_seconds)
+
+    def stop(self) -> None:
+        self._running = False
+
+    # --- control passthrough ---
+    def arm(self) -> dict:
+        if self.trader:
+            self.trader.arm()
+        return self.status()
+
+    def disarm(self) -> dict:
+        if self.trader:
+            self.trader.disarm()
+        return self.status()
+
+    def kill(self) -> dict:
+        if self.trader:
+            self.trader.kill()
+        return self.status()
+
+    def status(self) -> dict:
+        out = {
+            "enabled": self.trader is not None,
+            "broker_error": self.broker_error,
+            "config": {
+                "strategy": self.config.strategy,
+                "timeframe": self.config.timeframe,
+                "watchlist": self.config.watchlist,
+                "max_positions": self.config.max_positions,
+                "max_new_per_day": self.config.max_new_per_day,
+                "risk_fraction": self.config.risk_fraction,
+                "autostart_armed": self.config.autostart_armed,
+            },
+            "last": self.last_status,
+            "journal_today": self.journal.today()[-50:],
+        }
+        if self.broker is not None:
+            try:
+                acct = self.broker.get_account()
+                out["account"] = {
+                    "equity": acct.get("equity"),
+                    "cash": acct.get("cash"),
+                    "buying_power": acct.get("buying_power"),
+                }
+                out["clock"] = self.broker.get_clock()
+                out["positions"] = [
+                    {
+                        "symbol": p.get("symbol"),
+                        "qty": p.get("qty"),
+                        "avg_entry_price": p.get("avg_entry_price"),
+                        "unrealized_pl": p.get("unrealized_pl"),
+                        "market_value": p.get("market_value"),
+                    }
+                    for p in self.broker.list_positions()
+                ]
+            except Exception as e:
+                out["account_error"] = str(e)
+        return out

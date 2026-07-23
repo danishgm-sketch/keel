@@ -51,6 +51,53 @@ included strategies are honest *hypotheses*, not proven edges. Finding the edge
 is the research work in `RESEARCH_BETS.md`; this is the machine that tests it
 without lying to you.
 
+## Automated paper trading (opens and runs by itself)
+
+Open the app and the paper bot starts on its own: during market hours it scans
+your watchlist, sizes each entry at the guarded risk fraction from its stop,
+submits **paper** orders through Alpaca, manages stops, and flattens intraday
+names near the close. The dashboard's top panel shows it live — armed/market
+state, account equity, open positions, today's activity — with an **Arm** toggle
+and a red **KILL & FLATTEN** button.
+
+Deliberate safety lines, non-negotiable:
+
+- **Paper only.** `keel.broker` targets the Alpaca paper endpoint and has no code
+  path to live money. Going live is a future decision gated on real evidence, not
+  a flag you can flip by accident.
+- **Risk sizing is a constant**, never auto-tuned.
+- **Kill switch** cancels every order and flattens every position, and can never
+  itself raise an error.
+
+Headless (no window): `keel trade-live --dir data`.
+
+### It evolves — the disciplined way
+
+`keel evolve` grows the playbook without fooling itself: it searches strategy
+variants, evaluates each on a real train/test split, and promotes **only** those
+that beat the bootstrap null in-sample after Benjamini–Hochberg correction *and*
+again out-of-sample. Survivors are written to `roster.json`; the champion becomes
+what the live bot runs. If nothing survives, there's no champion — and that's the
+honest, correct outcome. It never rewrites risk management or tunes to noise.
+
+### The LLM brain (Ollama / Claude / Gemini)
+
+An LLM can widen that search. It **proposes** candidate strategy variants inside a
+locked schema; every proposal still faces the same statistical gate. It never
+places an order, touches risk, or promotes itself — an idea generator behind a
+locked door.
+
+```bash
+keel llm recommend      # picks an Ollama model for your RAM + the pull command
+ollama pull <model>     # e.g. qwen2.5:14b-instruct
+keel llm status         # which provider is active (local-first)
+keel evolve --use-llm   # LLM proposes variants; the gate still decides
+```
+
+Local Ollama is preferred (private, free); Claude (`ANTHROPIC_API_KEY`) and
+Gemini (`GEMINI_API_KEY`/`GOOGLE_API_KEY`) are automatic fallbacks if their keys
+are in your environment.
+
 ## Just open it (desktop app)
 
 No terminal needed after the first launch:

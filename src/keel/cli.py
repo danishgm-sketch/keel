@@ -87,6 +87,95 @@ def _cmd_app(args) -> int:
     return 0
 
 
+def _cmd_trade_live(args) -> int:
+    import time
+
+    from keel.env import load_env
+    from keel.service import LiveService
+
+    load_env()
+    service = LiveService(args.dir)
+    service.start()
+    if service.trader is None:
+        print(f"bot not started: {service.broker_error}")
+        return 1
+    print(f"paper bot running (armed={service.trader.armed}). Ctrl+C to stop.")
+    try:
+        while True:
+            time.sleep(service.config.poll_seconds)
+            s = service.last_status
+            print(f"  {s.get('note', '')} | trades_today={s.get('trades_today', '?')}")
+    except KeyboardInterrupt:
+        service.stop()
+        print("\nstopped (positions left as-is; use the UI KILL to flatten)")
+    return 0
+
+
+def _cmd_evolve(args) -> int:
+    from keel.env import load_env
+    from keel.roster import evolve, load_roster
+
+    load_env()
+    extra = []
+    if args.use_llm:
+        from keel.advisor import propose_variants
+        from keel.llm import pick_provider
+
+        llm = pick_provider(args.prefer)
+        if llm is None:
+            print("no LLM available (no Ollama running, no API keys) — skipping proposals")
+        else:
+            prev = load_roster(args.dir)
+            context = "First run." if not prev else f"Previous champion: {prev.get('champion')}"
+            extra = propose_variants(llm, context, n=args.n)
+            print(f"{llm.name} proposed {len(extra)} variant(s) to test")
+    summary = evolve(args.dir, q=args.q, extra_variants=extra)
+    if "error" in summary:
+        print(summary["error"])
+        return 1
+    champ = summary["champion"]
+    survivors = [r for r in summary["variants"] if r["survived"]]
+    print(f"evaluated {summary['n_variants']} variants, {len(survivors)} survived the gate")
+    for r in survivors:
+        print(f"  {r['strategy']} {r['params']}  oos_sharpe={r.get('sharpe_oos')}")
+    print(f"champion: {champ or 'NONE (honest — keep the default, no validated edge)'}")
+    return 0
+
+
+def _cmd_llm(args) -> int:
+    from keel.env import load_env
+    from keel.llm import (
+        ClaudeProvider,
+        GeminiProvider,
+        OllamaProvider,
+        pick_provider,
+        recommend_ollama_model,
+        total_ram_gb,
+    )
+
+    load_env()
+    if args.action == "recommend":
+        ram = total_ram_gb()
+        model = recommend_ollama_model(ram)
+        print(f"detected ~{ram:.0f} GB RAM -> recommended local model: {model}")
+        print(f"install it with:  ollama pull {model}")
+        return 0
+    if args.action == "status":
+        print(f"ollama running: {OllamaProvider.available()}")
+        print(f"claude key present: {ClaudeProvider().available()}")
+        print(f"gemini key present: {GeminiProvider().available()}")
+        p = pick_provider(args.prefer)
+        print(f"active provider: {p.name if p else 'NONE'}")
+        return 0
+    # test
+    p = pick_provider(args.prefer)
+    if p is None:
+        print("no provider available")
+        return 1
+    print(f"[{p.name}] {p.complete('Reply with exactly: keel llm online', system='Be terse.')}")
+    return 0
+
+
 def _cmd_trade(args) -> int:
     data = load_dir(args.dir)
     if not data:
@@ -169,6 +258,30 @@ def main(argv: list[str] | None = None) -> int:
     p_app.add_argument("--dir", default="data", help="data directory to browse")
     p_app.add_argument("--port", type=int, default=None)
     p_app.set_defaults(func=_cmd_app)
+
+    p_tl = sub.add_parser("trade-live", help="run the automated PAPER bot headless")
+    p_tl.add_argument("--dir", default="data")
+    p_tl.set_defaults(func=_cmd_trade_live)
+
+    p_ev = sub.add_parser("evolve", help="search + validate strategy variants, promote survivors")
+    p_ev.add_argument("--dir", default="data")
+    p_ev.add_argument("--q", type=float, default=0.10, help="FDR level")
+    p_ev.add_argument(
+        "--use-llm",
+        action="store_true",
+        dest="use_llm",
+        help="let an LLM propose extra variants (still gated)",
+    )
+    p_ev.add_argument("--prefer", default=None, help="ollama | claude | gemini")
+    p_ev.add_argument("--n", type=int, default=5, help="LLM proposals to request")
+    p_ev.set_defaults(func=_cmd_evolve)
+
+    p_llm = sub.add_parser("llm", help="LLM provider status / model recommendation / test")
+    p_llm.add_argument(
+        "action", choices=["status", "recommend", "test"], default="status", nargs="?"
+    )
+    p_llm.add_argument("--prefer", default=None, help="ollama | claude | gemini")
+    p_llm.set_defaults(func=_cmd_llm)
 
     args = parser.parse_args(argv)
     return args.func(args)

@@ -13,7 +13,7 @@ dependencies = ["numpy>=1.26"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.6"]
-desktop = ["pywebview>=5.0"]
+desktop = ["pywebview>=5.0", "psutil>=5.9"]
 
 [project.scripts]
 keel = "keel.cli:main"
