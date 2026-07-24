@@ -187,6 +187,21 @@ def _cmd_brain(args) -> int:
     return 0
 
 
+def _cmd_train(args) -> int:
+    from keel.env import load_env
+    from keel.training import run_training
+
+    load_env()
+    s = run_training(args.dir, base_model=args.base_model)
+    print(f"graded {s['graded']} past decisions ({s['good']} were right by outcome)")
+    print("lessons folded into the brain's context (brain_lessons.md)")
+    print(f"fine-tune dataset: {s['examples']} examples -> {s['dataset']}")
+    print(f"Keel-only model recipe -> {s['modelfile']}")
+    print(f"  build it:   {s['create_cmd']}")
+    print(f"  use it:     {s['set_model']}")
+    return 0
+
+
 def _cmd_llm(args) -> int:
     from keel.env import load_env
     from keel.llm import (
@@ -330,6 +345,13 @@ def main(argv: list[str] | None = None) -> int:
     p_br = sub.add_parser("brain", help="run one AI reasoning pass over the system state")
     p_br.add_argument("--dir", default="data")
     p_br.set_defaults(func=_cmd_brain)
+
+    p_tr2 = sub.add_parser(
+        "train", help="grade the brain's past calls, learn lessons, export a Keel-only model"
+    )
+    p_tr2.add_argument("--dir", default="data")
+    p_tr2.add_argument("--base-model", default="qwen3", dest="base_model")
+    p_tr2.set_defaults(func=_cmd_train)
 
     p_llm = sub.add_parser("llm", help="LLM provider status / model recommendation / test")
     p_llm.add_argument(

@@ -170,7 +170,9 @@ def pick_provider(prefer: str | None = None):
     order += ["ollama", "claude", "gemini"]
     for choice in order:
         if choice == "ollama" and OllamaProvider.available():
-            return OllamaProvider(recommend_ollama_model())
+            # After `keel train`, set KEEL_OLLAMA_MODEL=keel-brain to run the
+            # trained Keel-only model instead of the base recommendation.
+            return OllamaProvider(os.getenv("KEEL_OLLAMA_MODEL") or recommend_ollama_model())
         if choice == "claude" and ClaudeProvider().available():
             return ClaudeProvider()
         if choice == "gemini" and GeminiProvider().available():

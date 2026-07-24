@@ -8,3 +8,7 @@ build/
 .env
 .env.local
 data/
+brain_memory.jsonl
+brain_lessons.md
+brain_finetune.jsonl
+Modelfile.keel-brain

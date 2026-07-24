@@ -119,6 +119,33 @@ keel brain              # one AI reasoning pass over the current system state
 keel evolve --use-llm   # LLM proposes variants; the gate still decides
 ```
 
+### The training protocol — the brain's only subject is Keel
+
+The brain's entire context is a **constitution** (`knowledge.py`): who it is
+(Keel-Brain), what Keel is, the whole playbook, and the honesty spine it can
+never break. It is injected on every call, so the model reasons about nothing but
+improving Keel. On top of that sits a real, outcome-driven training loop
+(`training.py`), run with **`keel train`**:
+
+1. **Remember** — every decision (state it saw + what it recommended) is logged.
+2. **Grade** — each past call is scored by what actually happened next (did equity
+   rise when it said *normal*, or fall when it said *defensive*?). Measured
+   outcomes are the training signal — never vibes.
+3. **Distill** — the graded record becomes `brain_lessons.md`, folded back into
+   the constitution, so it reasons with what it has learned. Self-improvement,
+   no GPU.
+4. **Export** — positively-graded pairs become a chat fine-tune dataset, and an
+   Ollama `Modelfile` bakes the Keel-only constitution into a custom model:
+
+```bash
+keel train                       # grade, learn lessons, export dataset + Modelfile
+ollama create keel-brain -f data/Modelfile.keel-brain
+set KEEL_OLLAMA_MODEL=keel-brain # now the bot runs your trained Keel-only model
+```
+
+The training can only sharpen the brain's *judgement*. It cannot touch risk
+sizing or invent a strategy — the honesty spine holds through training too.
+
 Local Ollama is preferred (private, free); Claude (`ANTHROPIC_API_KEY`) and
 Gemini (`GEMINI_API_KEY`/`GOOGLE_API_KEY`) are automatic fallbacks. The bot trades
 safely with no model connected — you just lose the AI read.

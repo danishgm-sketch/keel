@@ -101,12 +101,13 @@ def parse_recommendation(text: str) -> dict:
 
 
 class AiBrain:
-    def __init__(self, llm):
+    def __init__(self, llm, system: str | None = None):
         self.llm = llm
+        self.system = system or SYSTEM
 
     def reason(self, briefing: dict) -> dict:
         try:
-            text = self.llm.complete(build_prompt(briefing), system=SYSTEM)
+            text = self.llm.complete(build_prompt(briefing), system=self.system)
         except Exception as e:
             return {**_default_defensive(), "rationale": f"brain error, staying defensive: {e}"}
         return parse_recommendation(text)
@@ -139,7 +140,12 @@ def run_brain_cycle(data_dir: str | Path, status: dict, llm=None) -> dict:
     briefing = situational_briefing(data_dir, status)
     if llm is None:
         return {"available": False, "briefing": briefing, "recommendation": _default_defensive()}
-    rec = AiBrain(llm).reason(briefing)
+
+    from keel.knowledge import system_context
+    from keel.training import append_memory
+
+    rec = AiBrain(llm, system=system_context(data_dir)).reason(briefing)
+    append_memory(data_dir, briefing, rec)  # remember for the training loop
     return {
         "available": True,
         "provider": getattr(llm, "name", "?"),
