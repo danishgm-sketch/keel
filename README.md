@@ -196,7 +196,8 @@ keel intelligence verify-journal  # prove the record was not altered
 keel intelligence list-incidents --status OPEN
 ```
 
-See **`KEEL_V1_BUILD_PACKAGE.md`** for the full contract and operating guide.
+See **`KEEL_V1_MILESTONE_1.md`** for the shipped contract and operating guide,
+and **`KEEL_V1_BUILD_PACKAGE.md`** for the full v1 product programme.
 
 ## Just open it (desktop app)
 

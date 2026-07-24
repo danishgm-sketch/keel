@@ -175,8 +175,9 @@ be **observed and challenged** without ever being able to raise risk.
 
 Learning is confined to the durable **episode** record: the system may only
 learn from its own recorded outcomes under evidence-gated rules — never from an
-adjacent market move it never acted on. See `KEEL_V1_BUILD_PACKAGE.md` for the
-full contract and operating guide.
+adjacent market move it never acted on. See `KEEL_V1_MILESTONE_1.md` for the
+shipped contract and operating guide (and `KEEL_V1_BUILD_PACKAGE.md` for the
+full v1 product programme).
 
 ---
 

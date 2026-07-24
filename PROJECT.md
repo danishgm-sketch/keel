@@ -167,7 +167,7 @@ If nothing survives → no champion → the system stays defensive. That is the 
 6. **Kill switch.** Cancels all orders and flattens all positions, and can never itself raise an error.
 7. **Server-side stops.** A protective stop rests at the broker, surviving a dropped connection.
 8. **Secrets stay local.** Keys load from a gitignored `.env`, are sent only to Alpaca over HTTPS, never logged or committed.
-9. **Keel Intelligence is closed-domain and shadow-only.** `keel.intelligence` reasons about one world — Keel — from a validated `KeelState`; missing safety facts are recorded as degraded, never assumed healthy. Its outputs are bounded, reduction-only proposals under an expiring authority grant, validated fail-closed. In shadow mode (the default) the applied action is always the deterministic baseline; deployed inference cannot raise a posture, loosen a limit, place an order, or modify its own weights. A general LLM is admitted only as a recorded shadow challenger. See `KEEL_V1_BUILD_PACKAGE.md`.
+9. **Keel Intelligence is closed-domain and shadow-only.** `keel.intelligence` reasons about one world — Keel — from a validated `KeelState`; missing safety facts are recorded as degraded, never assumed healthy. Its outputs are bounded, reduction-only proposals under an expiring authority grant, validated fail-closed. In shadow mode (the default) the applied action is always the deterministic baseline; deployed inference cannot raise a posture, loosen a limit, place an order, or modify its own weights. A general LLM is admitted only as a recorded shadow challenger. See `KEEL_V1_MILESTONE_1.md` (shipped) and `KEEL_V1_BUILD_PACKAGE.md` (full v1 programme).
 
 ---
 

@@ -28,7 +28,8 @@ validator, a shadow-mode inference bridge, SQLite durable truth, a
 tamper-evident journal, incidents, order-intent idempotency, structured
 episodes, the `keel intelligence …` CLI, and a UI status surface. The AI
 observes and records; in shadow mode the applied action is always the
-deterministic baseline. Full contract in `KEEL_V1_BUILD_PACKAGE.md`.
+deterministic baseline. Shipped contract in `KEEL_V1_MILESTONE_1.md`; the full
+v1 product programme is in `KEEL_V1_BUILD_PACKAGE.md`.
 
 **Gate met:** tests prove the intelligence cannot raise a posture above
 baseline, cannot loosen a limit, cannot place an order, fails closed on every
