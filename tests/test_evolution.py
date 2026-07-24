@@ -26,7 +26,7 @@ def _data_dir(tmp_path, n=3, sessions=10):
 def test_evolve_runs_and_writes_roster(tmp_path):
     _data_dir(tmp_path)
     summary = evolve(tmp_path, extra_variants=[("rsi2", {"entry_level": 8.0})])
-    assert summary["n_variants"] == 11  # 10 base + 1 extra
+    assert summary["n_variants"] == 13  # 10 strategies + 2 ensembles + 1 extra
     assert (tmp_path / "roster.json").is_file()
     # too little data to clear the gate honestly -> no champion, and that's correct
     for r in summary["variants"]:

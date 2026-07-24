@@ -115,7 +115,7 @@ footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--edge);font-fa
 <p class="lede">The whole machine on one page — open this file in any browser, offline. It is kept in step with the code, so it never goes stale.</p>
 <div class="meta">
   <span><span class="dot">●</span> paper-only · risk disabled in code</span>
-  <span>v0.2.0</span><span>13 modules</span><span>109 tests</span>
+  <span>v0.3.0</span><span>22 modules</span><span>135 tests</span>
 </div>
 
 <div class="spine">
@@ -130,7 +130,7 @@ footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--edge);font-fa
   <div class="arrow"></div>
   <div class="node"><span class="tag">Scan</span><span class="txt">Scanner ranks the whole market by liquidity → top candidates + recent bars</span></div>
   <div class="arrow"></div>
-  <div class="node"><span class="tag">Choose</span><span class="txt">Meta-brain picks the best <b>proven</b> strategy per symbol, per moment</span></div>
+  <div class="node"><span class="tag">Choose</span><span class="txt">Meta-brain / <b>signal ensemble</b> picks the best <b>proven</b> policy per symbol, per moment</span></div>
   <div class="arrow"></div>
   <div class="node decision"><span class="tag">Entry signal?</span><span class="txt">If no → back to scan.  If yes → continue</span>
     <div class="branch"><span class="loop">↻ no</span> → re-scan next cycle</div></div>
@@ -140,7 +140,10 @@ footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--edge);font-fa
   <div class="arrow"></div>
   <div class="node risk"><span class="tag">Risk</span><span class="txt">Size 1% of equity from the stop — a constant, nothing may change it</span></div>
   <div class="arrow"></div>
-  <div class="node safe"><span class="tag">Execute</span><span class="txt">Broker places an Alpaca <b>PAPER</b> order — live money disabled in code</span></div>
+  <div class="node decision"><span class="tag">Portfolio risk budget?</span><span class="txt">Exposure &amp; drawdown limits. If a breach → stand aside</span>
+    <div class="branch"><span class="loop">↻ breach</span> → skip, re-scan</div></div>
+  <div class="arrow"></div>
+  <div class="node safe"><span class="tag">Execute</span><span class="txt">Broker places an Alpaca <b>PAPER</b> order with a <b>server-side stop</b> — live money disabled</span></div>
   <div class="arrow"></div>
   <div class="node"><span class="tag">Record</span><span class="txt">Journal — every decision, append-only</span></div>
   <div class="arrow"></div>
@@ -194,15 +197,18 @@ footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--edge);font-fa
 <tr><td class="m">data · universe</td><td>Validated bars; point-in-time membership. Look-ahead and survivorship bias made structurally impossible.</td></tr>
 <tr><td class="m">indicators</td><td>Causal EMA / RSI / ATR — every value uses only the past.</td></tr>
 <tr><td class="m">strategies</td><td>The playbook: rsi2 (mean reversion), orb (breakout), swing (trend pullback).</td></tr>
-<tr><td class="m">meta</td><td>Picks the best-fitting strategy per symbol, per moment; re-selects as the regime shifts, never mid-trade.</td></tr>
+<tr><td class="m">signals · ensemble</td><td>Many weak signals scored 0–1, blended into one conviction (the RenTech pivot). The ensemble is gated like any strategy.</td></tr>
+<tr><td class="m">meta</td><td>Picks the best-fitting strategy/ensemble per symbol, per moment; re-selects as the regime shifts, never mid-trade.</td></tr>
+<tr><td class="m">allocator</td><td>Cross-sectional book: rank by conviction, equal-risk many small bets.</td></tr>
 <tr><td class="m">backtest · portfolio</td><td>Next-open fills, gap-aware stops, costs on every fill; the multi-symbol engine is the live logic in test form.</td></tr>
 <tr><td class="m">risk · costs</td><td>Fixed 1%-from-stop sizing (a constant); a realistic cost model that keeps turnover honest.</td></tr>
 <tr><td class="m">stats</td><td>The judge — block-bootstrap null + Benjamini–Hochberg. The part that can say “no”.</td></tr>
-<tr><td class="m">roster · walkforward</td><td>Evolution + the out-of-sample gate; writes the champion and the edge ledger.</td></tr>
+<tr><td class="m">roster · walkforward · certify</td><td>Evolution + the out-of-sample gate; writes the champion and edge ledger. Certify runs any target through the gate as a service.</td></tr>
+<tr><td class="m">decay · riskbudget · stress</td><td>Auto-retire fading edges; portfolio exposure/drawdown limits; honest gap-aware stress tests.</td></tr>
 <tr><td class="m">scanner · catalysts · overlay</td><td>Whole-market liquidity ranking, the news feed, and the veto-only qualitative limb.</td></tr>
-<tr><td class="m">brain · knowledge · training</td><td>The Keel-only AI, its constitution, and the outcome-graded training loop.</td></tr>
-<tr><td class="m">broker · trader · service</td><td>Paper client, the live loop body, and the always-on orchestrator.</td></tr>
-<tr><td class="m">ui · app · doctor</td><td>The watch-only monitor, the desktop launcher, and one-command honest status.</td></tr>
+<tr><td class="m">brain · knowledge · training · synthesize</td><td>The Keel-only AI, its constitution, the outcome-graded training loop, and safe self-writing (bounded ensemble specs).</td></tr>
+<tr><td class="m">broker · trader · service</td><td>Paper client (server-side stops), the live loop body, and the always-on orchestrator.</td></tr>
+<tr><td class="m">ui · app · doctor · briefing</td><td>The watch-only monitor, the desktop launcher, one-command status, and the three-question briefing.</td></tr>
 </tbody>
 </table></div>
 

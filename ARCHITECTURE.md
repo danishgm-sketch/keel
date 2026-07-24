@@ -58,7 +58,12 @@ loosen a limit or invent an edge.
 | `universe.py` | Point-in-time membership — who was tradeable *on a past date*. Kills survivorship bias structurally. |
 | `indicators.py` | Causal EMA / RSI / ATR / session helpers. Every value at bar *i* uses only bars up to *i*. |
 | `strategy.py` / `strategies.py` | The playbook: `rsi2` (intraday mean reversion), `orb` (opening-range breakout), `swing` (trend pullback). Each answers "enter / hold / exit" for one bar. |
-| `meta.py` | The **meta-brain**: for each symbol, scores each strategy on its recent behaviour and routes the decision to the best-fitting one. Re-selects as the regime shifts; never mid-trade. |
+| `signals.py` / `ensemble.py` | The RenTech pivot: many weak signals scored 0–1, blended into one conviction. The ensemble runs through the same gate as any strategy — the *combiner* is what gets validated. |
+| `allocator.py` | Cross-sectional book — rank candidates by conviction and give each an equal slice of the risk budget (many small bets). |
+| `meta.py` | The **meta-brain**: for each symbol, scores each strategy/ensemble on its recent behaviour and routes the decision to the best-fitting one. Re-selects as the regime shifts; never mid-trade. |
+| `decay.py` / `riskbudget.py` / `stress.py` | Auto-retire fading edges; portfolio exposure + drawdown limits; honest gap-aware stress tests. |
+| `certify.py` / `synthesize.py` | The gate as a service (certify any target); safe self-writing (the LLM proposes bounded ensemble specs, never code). |
+| `briefing.py` | The three-question honest briefing: is there edge, what did it do, what is it worried about. |
 | `backtest.py` | Single-symbol walk-forward engine: next-open fills, gap-aware stops, costs on every fill. |
 | `portfolio.py` | Multi-symbol engine — the live trading logic in backtest form: many trades/day, turnover throttles, no leverage. |
 | `risk.py` | Fixed-fractional sizing from the stop. A **constant**; nothing may change it. |

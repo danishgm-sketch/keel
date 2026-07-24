@@ -6,4 +6,4 @@ Design rules (in priority order):
 3. The codebase stays small enough that one person can hold all of it in their head.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"

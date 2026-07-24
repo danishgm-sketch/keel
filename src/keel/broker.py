@@ -96,6 +96,33 @@ class AlpacaBroker:
             body["limit_price"] = str(round(limit_price, 2))
         return self._request("POST", "/v2/orders", body)  # type: ignore[return-value]
 
+    def submit_bracket(
+        self,
+        symbol: str,
+        qty: int,
+        stop_price: float,
+        take_profit: float | None = None,
+        time_in_force: str = "day",
+    ) -> dict:
+        """Buy with a protective stop that rests SERVER-SIDE, so a dropped
+        connection or a sleeping laptop can never leave a naked position. Uses a
+        bracket (stop + target) when a target is given, else a stop-attached
+        one-triggers-other order."""
+        body: dict = {
+            "symbol": symbol,
+            "qty": str(qty),
+            "side": "buy",
+            "type": "market",
+            "time_in_force": time_in_force,
+            "stop_loss": {"stop_price": str(round(stop_price, 2))},
+        }
+        if take_profit is not None:
+            body["order_class"] = "bracket"
+            body["take_profit"] = {"limit_price": str(round(take_profit, 2))}
+        else:
+            body["order_class"] = "oto"
+        return self._request("POST", "/v2/orders", body)  # type: ignore[return-value]
+
     def close_position(self, symbol: str) -> dict:
         return self._request("DELETE", f"/v2/positions/{symbol}")  # type: ignore[return-value]
 

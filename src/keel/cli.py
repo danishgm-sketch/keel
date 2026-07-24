@@ -187,6 +187,62 @@ def _cmd_brain(args) -> int:
     return 0
 
 
+def _cmd_briefing(args) -> int:
+    from keel.briefing import briefing
+    from keel.env import load_env
+
+    load_env()
+    b = briefing(args.dir)
+    print("=== Keel Briefing ===")
+    print(f"1. Is there proven edge?  {b['edge']}")
+    print(f"2. What did it do?        {b['activity']}")
+    print(f"3. What's it worried about? {b['worries']}")
+    print(f"\n{b['verdict']}")
+    return 0
+
+
+def _cmd_certify(args) -> int:
+    from keel.certify import certify
+    from keel.env import load_env
+
+    load_env()
+    c = certify(args.dir, args.target, train=args.train, test=args.test)
+    if "error" in c:
+        print(c["error"])
+        return 1
+    print(
+        f"target: {c['target']}  |  folds: {c['folds']}  |  OOS Sharpe: {c['oos_sharpe']}  "
+        f"|  p={c['pvalue']}"
+    )
+    print(c["statement"])
+    return 0 if c["certified"] else 2
+
+
+def _cmd_stress(args) -> int:
+    from keel.env import load_env
+    from keel.stress import stress_book
+
+    load_env()
+    try:
+        from keel.broker import AlpacaBroker
+
+        positions = [
+            {"price": float(p["avg_entry_price"]), "shares": int(float(p["qty"])), "stop": 0.0}
+            for p in AlpacaBroker().list_positions()
+        ]
+    except Exception as e:
+        print(f"could not read positions ({e}); showing an example book instead")
+        positions = [
+            {"price": 100, "shares": 50, "stop": 95},
+            {"price": 40, "shares": 100, "stop": 38},
+        ]
+    report = stress_book(positions)
+    print(f"book notional: {report['notional']:,.0f}")
+    for name, r in report["scenarios"].items():
+        print(f"  {name:<20} {r['pnl']:>12,.0f}  ({r['pct_of_book']:+.1%} of book)")
+    return 0
+
+
 def _cmd_doctor(args) -> int:
     from keel.doctor import diagnose
     from keel.env import load_env
@@ -371,6 +427,21 @@ def main(argv: list[str] | None = None) -> int:
     p_doc.add_argument("--dir", default="data")
     p_doc.add_argument("--network", action="store_true", help="also ping broker + LLM")
     p_doc.set_defaults(func=_cmd_doctor)
+
+    p_bf = sub.add_parser("briefing", help="the three-question honest morning briefing")
+    p_bf.add_argument("--dir", default="data")
+    p_bf.set_defaults(func=_cmd_briefing)
+
+    p_ct = sub.add_parser("certify", help="run a strategy/ensemble through the honesty gate")
+    p_ct.add_argument("target", choices=["rsi2", "orb", "swing", "ensemble"])
+    p_ct.add_argument("--dir", default="data")
+    p_ct.add_argument("--train", type=int, default=60)
+    p_ct.add_argument("--test", type=int, default=20)
+    p_ct.set_defaults(func=_cmd_certify)
+
+    p_st = sub.add_parser("stress", help="stress-test the current book (honest gap risk)")
+    p_st.add_argument("--dir", default="data")
+    p_st.set_defaults(func=_cmd_stress)
 
     p_br = sub.add_parser("brain", help="run one AI reasoning pass over the system state")
     p_br.add_argument("--dir", default="data")

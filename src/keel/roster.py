@@ -41,9 +41,24 @@ VARIANTS: list[tuple[str, dict]] = [
     ("orb", {"or_bars": 10}),
     ("swing", {"fast": 10, "mid": 20, "slow": 50}),
     ("swing", {"fast": 20, "mid": 50, "slow": 200}),
+    # The ensemble (RenTech-style signal blend) is judged by the SAME gate.
+    ("ensemble", {}),
+    ("ensemble", {"entry": 0.5, "exit_": 0.3}),
 ]
 
-_CLASSES = {"rsi2": Rsi2Reversion, "orb": OpeningRangeBreakout, "swing": SwingPullback}
+
+def _ensemble_class(**params):
+    from keel.ensemble import EnsembleStrategy
+
+    return EnsembleStrategy(**params)
+
+
+_CLASSES = {
+    "rsi2": Rsi2Reversion,
+    "orb": OpeningRangeBreakout,
+    "swing": SwingPullback,
+    "ensemble": _ensemble_class,
+}
 
 
 def build_factory(strategy: str, params: dict):

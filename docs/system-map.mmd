@@ -14,13 +14,15 @@
 flowchart TD
   A["Alpaca market data: bars, snapshots, news"] --> B["Scanner: rank whole market by liquidity"]
   B --> C["Top candidates + recent bars"]
-  C --> D["Meta-brain: pick best PROVEN strategy per symbol, per moment"]
+  C --> D["Meta-brain / signal ensemble: best PROVEN policy per symbol, per moment"]
   D --> E{"Entry signal?"}
   E -->|"no"| C
   E -->|"yes"| F{"Qualitative limb: news / earnings veto?"}
   F -->|"vetoed"| C
   F -->|"clear"| G["Risk sizing: 1% of equity from the stop (constant)"]
-  G --> H["Broker: Alpaca PAPER order (live money disabled in code)"]
+  G --> Q{"Portfolio risk budget: exposure & drawdown limits?"}
+  Q -->|"breach"| C
+  Q -->|"ok"| H["Broker: Alpaca PAPER order + server-side stop (live money disabled)"]
   H --> I["Journal: every decision, append-only"]
   I --> J["Walk-forward gate: is there edge, out-of-sample?"]
   J --> K["Edge ledger: the truth over time"]

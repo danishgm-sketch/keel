@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "keel"
-version = "0.2.0"
+version = "0.3.0"
 description = "Honest autonomous trading machine: whole-market scan, per-moment strategy selection, walk-forward-gated edge, a Keel-only AI brain, and a qualitative veto limb — paper-only"
 readme = "README.md"
 license = { file = "LICENSE" }
