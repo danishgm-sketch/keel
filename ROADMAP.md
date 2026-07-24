@@ -20,6 +20,22 @@ verdict. 30 tests, CI green on Linux + Windows × 3.11/3.12.
 
 ---
 
+## Keel Intelligence — Milestone 1: shadow runtime & durable truth ✅ (done)
+
+The closed-domain machine intelligence foundation: canonical `KeelState`
+contracts, a deterministic baseline policy, a pure fail-closed authority
+validator, a shadow-mode inference bridge, SQLite durable truth, a
+tamper-evident journal, incidents, order-intent idempotency, structured
+episodes, the `keel intelligence …` CLI, and a UI status surface. The AI
+observes and records; in shadow mode the applied action is always the
+deterministic baseline. Full contract in `KEEL_V1_BUILD_PACKAGE.md`.
+
+**Gate met:** tests prove the intelligence cannot raise a posture above
+baseline, cannot loosen a limit, cannot place an order, fails closed on every
+invalid/stale/excessive proposal, and the service never mutates trading limits.
+
+---
+
 ## Phase 1 — Data foundation & the known-anomaly check
 
 Build a real data layer and prove the harness can *detect an effect that is

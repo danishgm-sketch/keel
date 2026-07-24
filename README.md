@@ -170,6 +170,34 @@ Local Ollama is preferred (private, free); Claude (`ANTHROPIC_API_KEY`) and
 Gemini (`GEMINI_API_KEY`/`GOOGLE_API_KEY`) are automatic fallbacks. The bot trades
 safely with no model connected — you just lose the AI read.
 
+### Keel Intelligence — the closed-domain shadow runtime
+
+Keel v1 adds a machine intelligence whose **only world is Keel**. It is the
+disciplined way to deploy a learning system: it **observes and records**, but by
+construction it cannot raise risk or place an order.
+
+- Its only inputs are a validated `KeelState`; missing or unconfirmed safety
+  facts are recorded as *degraded*, never assumed healthy.
+- Its only outputs are bounded, **reduction-only** proposals scoped to certified
+  strategies — it cannot express "increase risk".
+- Its only authority is an **expiring grant**; a pure fail-closed validator
+  refuses anything mismatched, expired, escalating, or out-of-scope and falls
+  back to a deterministic baseline with a specific reason code.
+- In **shadow mode (the default)** the applied action is *always* the baseline —
+  a general LLM may enter only as a recorded shadow challenger. The old direct
+  posture application is gated behind `legacy_posture_apply` (off by default).
+- Every state, decision, and incident is written to a durable **SQLite** store
+  and a **tamper-evident** hash-chained journal.
+
+```bash
+keel intelligence status          # mode, health, recent decisions
+keel intelligence shadow          # run one live shadow pass (records, never acts)
+keel intelligence verify-journal  # prove the record was not altered
+keel intelligence list-incidents --status OPEN
+```
+
+See **`KEEL_V1_BUILD_PACKAGE.md`** for the full contract and operating guide.
+
 ## Just open it (desktop app)
 
 No terminal needed after the first launch:
