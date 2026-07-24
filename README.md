@@ -8,6 +8,10 @@ Today this repo is the honest research core (Phase 0). The full vision — where
 goes and the realistic money-making case — is in **[VISION.md](VISION.md)**; the
 evidence-gated path is in **[ROADMAP.md](ROADMAP.md)**.
 
+**See the whole machine at a glance:** open **[`docs/system-map.html`](docs/system-map.html)**
+in any browser — a self-contained, offline wireframe kept in step with the code.
+The written companion is **[ARCHITECTURE.md](ARCHITECTURE.md)**.
+
 ## What it is (today)
 
 - **PIT-first data**: the tradeable universe carries dated membership

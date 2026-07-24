@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Keel — System Map</title>
+<!--
+  Self-contained, offline, no dependencies. Double-click to open in any browser.
+  This is the in-repo wireframe of the whole machine. Keep it updated in the SAME
+  change as any architecture change (alongside docs/system-map.mmd).
+-->
+<style>
+:root{
+  --bg:#0a0e14;--panel:#121a24;--panel-2:#0e1620;--edge:#233042;
+  --ink:#c7d2de;--dim:#76899b;--faint:#4a5a6b;
+  --accent:#57c7d4;--accent-dim:#2c6d76;
+  --proven:#3fb950;--caution:#e3a008;--stop:#f85149;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:light){:root{
+  --bg:#eef2f6;--panel:#fff;--panel-2:#f4f7fa;--edge:#d3dde6;
+  --ink:#1c2733;--dim:#5a6a78;--faint:#98a7b4;--accent:#127a86;--accent-dim:#9cd6dd;}}
+:root[data-theme="dark"]{--bg:#0a0e14;--panel:#121a24;--panel-2:#0e1620;--edge:#233042;
+  --ink:#c7d2de;--dim:#76899b;--faint:#4a5a6b;--accent:#57c7d4;--accent-dim:#2c6d76;}
+:root[data-theme="light"]{--bg:#eef2f6;--panel:#fff;--panel-2:#f4f7fa;--edge:#d3dde6;
+  --ink:#1c2733;--dim:#5a6a78;--faint:#98a7b4;--accent:#127a86;--accent-dim:#9cd6dd;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55}
+.wrap{max-width:940px;margin:0 auto;padding:0 22px 90px}
+a{color:var(--accent)}
+.kick{font-family:var(--mono);font-size:12px;letter-spacing:.26em;text-transform:uppercase;color:var(--accent);margin:44px 0 12px}
+h1{font-family:var(--mono);font-weight:600;font-size:clamp(30px,5vw,50px);margin:0;letter-spacing:-.01em}
+h1 .d{color:var(--dim)}
+.lede{font-size:clamp(16px,2.2vw,20px);max-width:62ch;margin:16px 0 0;color:var(--ink)}
+.meta{font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:18px;display:flex;gap:18px;flex-wrap:wrap}
+.dot{color:var(--proven)}
+.spine{margin:30px 0 6px;background:var(--panel);border:1px solid var(--edge);border-left:3px solid var(--accent);border-radius:10px;padding:18px 22px}
+.spine .l{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin:0 0 6px}
+.spine p{margin:0;font-size:15.5px}.spine b{color:var(--ink)}
+h2{font-family:var(--mono);font-weight:600;font-size:clamp(18px,3vw,24px);margin:52px 0 4px}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin:0}
+.sub{color:var(--dim);max-width:64ch;margin:8px 0 20px;font-size:14.5px}
+
+/* pipeline spine */
+.flow{display:flex;flex-direction:column;align-items:center;gap:0}
+.node{width:min(560px,100%);background:var(--panel);border:1px solid var(--edge);border-radius:10px;padding:13px 18px;position:relative}
+.node .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:3px}
+.node .txt{font-size:14.5px}
+.node.decision{border-style:dashed;border-color:var(--caution)}
+.node.decision .tag{color:var(--caution)}
+.node.safe{border-color:var(--proven)}
+.node.safe .tag{color:var(--proven)}
+.node.risk{border-color:var(--accent)}
+.arrow{width:2px;height:26px;background:var(--faint);position:relative}
+.arrow::after{content:"";position:absolute;bottom:0;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--faint)}
+.branch{font-family:var(--mono);font-size:11px;color:var(--dim);margin:6px 0 0;display:flex;align-items:center;gap:8px}
+.branch .loop{color:var(--caution)}
+
+/* callouts for the safety-bounded feedback */
+.feeds{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:26px}
+@media (max-width:620px){.feeds{grid-template-columns:1fr}}
+.feed{background:var(--panel-2);border:1px solid var(--edge);border-radius:10px;padding:14px 16px}
+.feed .h{font-family:var(--mono);font-size:12px;color:var(--accent);margin:0 0 4px}
+.feed p{margin:0;font-size:13.5px;color:var(--dim)}
+.feed.bound .h{color:var(--caution)}
+
+/* two limbs */
+.limbs{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:620px){.limbs{grid-template-columns:1fr}}
+.limb{border:1px solid var(--edge);border-radius:10px;padding:16px 18px;background:var(--panel)}
+.limb .cap{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin:0 0 8px}
+.limb.q{border-top:2px solid var(--accent)}.limb.q .cap{color:var(--accent)}
+.limb.l{border-top:2px solid var(--caution)}.limb.l .cap{color:var(--caution)}
+.limb p{margin:0;font-size:14px}
+.converge{display:flex;flex-direction:column;align-items:center;margin-top:10px}
+.gatebox{width:min(520px,100%);text-align:center;background:var(--panel-2);border:1px dashed var(--caution);border-radius:10px;padding:12px;font-family:var(--mono);font-size:13px}
+.outs{display:flex;gap:12px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+.out{font-family:var(--mono);font-size:12px;padding:6px 12px;border-radius:20px;border:1px solid var(--edge);color:var(--dim)}
+.out.go{color:var(--proven);border-color:var(--accent-dim)}
+.out.no{color:var(--caution)}
+
+/* horizontal chains (brain loop, gate) */
+.chain{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--mono);font-size:12.5px;overflow-x:auto;padding:4px 0}
+.step{background:var(--panel);border:1px solid var(--edge);border-radius:8px;padding:9px 12px;white-space:nowrap}
+.step.acc{border-color:var(--accent)}
+.step.go{border-color:var(--proven);color:var(--proven)}
+.step.no{border-color:var(--caution);color:var(--caution)}
+.to{color:var(--faint)}
+.loopnote{font-family:var(--mono);font-size:11.5px;color:var(--caution);margin-top:8px}
+
+/* table + rules (shared with ARCHITECTURE) */
+.tablewrap{overflow-x:auto;border:1px solid var(--edge);border-radius:12px;margin-top:6px}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:520px}
+th,td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--edge);vertical-align:top}
+th{font-family:var(--mono);font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--dim);background:var(--panel-2)}
+tr:last-child td{border-bottom:0}
+td.m{font-family:var(--mono);color:var(--accent);white-space:nowrap;font-size:12.5px}
+tbody tr:hover{background:var(--panel-2)}
+.rules{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
+@media (max-width:620px){.rules{grid-template-columns:1fr}}
+.rule{background:var(--panel);border:1px solid var(--edge);border-radius:10px;padding:15px 17px}
+.rule h3{font-family:var(--mono);font-size:12.5px;margin:0 0 6px}
+.rule.keep{border-top:2px solid var(--stop)}.rule.change{border-top:2px solid var(--proven)}
+.rule p{margin:0;font-size:13.5px;color:var(--dim)}
+.rule code,.sub code,.spine code{font-family:var(--mono);color:var(--accent);font-size:12.5px}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--edge);font-family:var(--mono);font-size:12px;color:var(--dim);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<p class="kick">System Map · in-repo wireframe</p>
+<h1>Keel<span class="d">.</span></h1>
+<p class="lede">The whole machine on one page — open this file in any browser, offline. It is kept in step with the code, so it never goes stale.</p>
+<div class="meta">
+  <span><span class="dot">●</span> paper-only · risk disabled in code</span>
+  <span>v0.2.0</span><span>13 modules</span><span>109 tests</span>
+</div>
+
+<div class="spine">
+  <p class="l">The rule that governs everything</p>
+  <p>Trading systems rarely fail from lack of cleverness — they fail because they <b>fool themselves into betting on noise.</b> So only a strategy <b>proven out-of-sample</b> may risk money. Everything smart can only choose among proven things, or make the system <b>more careful.</b></p>
+</div>
+
+<h2>1 · The pipeline</h2>
+<p class="sub">Data flows one way. The two dotted feedbacks below are the only influences that touch trading, and both are safety-bounded.</p>
+<div class="flow">
+  <div class="node"><span class="tag">Data</span><span class="txt">Alpaca market data — bars, snapshots, news</span></div>
+  <div class="arrow"></div>
+  <div class="node"><span class="tag">Scan</span><span class="txt">Scanner ranks the whole market by liquidity → top candidates + recent bars</span></div>
+  <div class="arrow"></div>
+  <div class="node"><span class="tag">Choose</span><span class="txt">Meta-brain picks the best <b>proven</b> strategy per symbol, per moment</span></div>
+  <div class="arrow"></div>
+  <div class="node decision"><span class="tag">Entry signal?</span><span class="txt">If no → back to scan.  If yes → continue</span>
+    <div class="branch"><span class="loop">↻ no</span> → re-scan next cycle</div></div>
+  <div class="arrow"></div>
+  <div class="node decision"><span class="tag">Qualitative limb — veto?</span><span class="txt">News / earnings / halt check. If vetoed → stand aside</span>
+    <div class="branch"><span class="loop">↻ vetoed</span> → drop the name, re-scan</div></div>
+  <div class="arrow"></div>
+  <div class="node risk"><span class="tag">Risk</span><span class="txt">Size 1% of equity from the stop — a constant, nothing may change it</span></div>
+  <div class="arrow"></div>
+  <div class="node safe"><span class="tag">Execute</span><span class="txt">Broker places an Alpaca <b>PAPER</b> order — live money disabled in code</span></div>
+  <div class="arrow"></div>
+  <div class="node"><span class="tag">Record</span><span class="txt">Journal — every decision, append-only</span></div>
+  <div class="arrow"></div>
+  <div class="node"><span class="tag">Judge</span><span class="txt">Walk-forward gate → edge ledger: is there edge, out-of-sample?</span></div>
+</div>
+<div class="feeds">
+  <div class="feed bound"><p class="h">↺ Edge ledger → meta-brain</p><p>Promotes <b>proven only</b>. A strategy reaches live selection solely by surviving the gate.</p></div>
+  <div class="feed bound"><p class="h">↺ AI brain → risk</p><p><b>Tightens only.</b> A defensive posture reduces trades and positions; it can never loosen risk.</p></div>
+</div>
+
+<h2>2 · Two limbs</h2>
+<p class="sub">Trades are driven by numbers and read against the news — but the limbs have very different authority.</p>
+<div class="limbs">
+  <div class="limb q"><p class="cap">Quantitative — only source of entries</p><p>A proven strategy fires a signal, then it is sized 1% from the stop. This is the <b>only</b> thing that can open a trade.</p></div>
+  <div class="limb l"><p class="cap">Qualitative — parallel, veto only</p><p>Reads news / catalysts and flags event risk. It can <b>only remove</b> a name from consideration — never create a buy.</p></div>
+</div>
+<div class="converge">
+  <div class="arrow"></div>
+  <div class="gatebox">is this name vetoed?</div>
+  <div class="outs"><span class="out go">no → take the trade</span><span class="out no">yes → stand aside</span></div>
+</div>
+
+<h2>3 · The brain &amp; its training loop</h2>
+<p class="sub">A local, Keel-only LLM reads all state and sets a risk posture, then learns from what actually happened.</p>
+<div class="chain">
+  <span class="step">system state</span><span class="to">→</span>
+  <span class="step acc">Keel-only LLM</span><span class="to">→</span>
+  <span class="step">posture (tighten-only)</span><span class="to">→</span>
+  <span class="step">remember</span><span class="to">→</span>
+  <span class="step">grade by outcome</span><span class="to">→</span>
+  <span class="step">lessons</span>
+</div>
+<p class="loopnote">↺ lessons fold back into the constitution — it learns to be right, not confident.</p>
+
+<h2>4 · The honesty gate</h2>
+<p class="sub">What earns the right to risk money. Most ideas die here — that is the machine working.</p>
+<div class="chain">
+  <span class="step">a strategy / variant</span><span class="to">→</span>
+  <span class="step">in-sample bootstrap</span><span class="to">→</span>
+  <span class="step">FDR across ALL variants</span><span class="to">→</span>
+  <span class="step">out-of-sample confirm</span><span class="to">→</span>
+  <span class="step">walk-forward, many folds</span><span class="to">→</span>
+  <span class="step no">no → stay defensive</span>
+  <span class="step go">yes, repeatedly → earns size</span>
+</div>
+
+<h2>5 · The code, module by module</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Module</th><th>Its job, in plain terms</th></tr></thead>
+<tbody>
+<tr><td class="m">data · universe</td><td>Validated bars; point-in-time membership. Look-ahead and survivorship bias made structurally impossible.</td></tr>
+<tr><td class="m">indicators</td><td>Causal EMA / RSI / ATR — every value uses only the past.</td></tr>
+<tr><td class="m">strategies</td><td>The playbook: rsi2 (mean reversion), orb (breakout), swing (trend pullback).</td></tr>
+<tr><td class="m">meta</td><td>Picks the best-fitting strategy per symbol, per moment; re-selects as the regime shifts, never mid-trade.</td></tr>
+<tr><td class="m">backtest · portfolio</td><td>Next-open fills, gap-aware stops, costs on every fill; the multi-symbol engine is the live logic in test form.</td></tr>
+<tr><td class="m">risk · costs</td><td>Fixed 1%-from-stop sizing (a constant); a realistic cost model that keeps turnover honest.</td></tr>
+<tr><td class="m">stats</td><td>The judge — block-bootstrap null + Benjamini–Hochberg. The part that can say “no”.</td></tr>
+<tr><td class="m">roster · walkforward</td><td>Evolution + the out-of-sample gate; writes the champion and the edge ledger.</td></tr>
+<tr><td class="m">scanner · catalysts · overlay</td><td>Whole-market liquidity ranking, the news feed, and the veto-only qualitative limb.</td></tr>
+<tr><td class="m">brain · knowledge · training</td><td>The Keel-only AI, its constitution, and the outcome-graded training loop.</td></tr>
+<tr><td class="m">broker · trader · service</td><td>Paper client, the live loop body, and the always-on orchestrator.</td></tr>
+<tr><td class="m">ui · app · doctor</td><td>The watch-only monitor, the desktop launcher, and one-command honest status.</td></tr>
+</tbody>
+</table></div>
+
+<h2>6 · To study, better, or remove</h2>
+<p class="sub">One rule for every change: <b>does it let the machine risk money on something unproven?</b> If yes, it is wrong — however clever. If no, improve away.</p>
+<div class="rules">
+  <div class="rule change"><h3>Fair game — improve freely</h3><p>Add a strategy (<code>strategies.py</code> → <code>VARIANTS</code>), change what “best now” means (<code>meta._score</code>), tune the veto (<code>overlay.py</code>), reshape the UI. Re-validate with <code>keel walkforward</code>.</p></div>
+  <div class="rule keep"><h3>The spine — do not weaken</h3><p>The 1%-from-stop sizing in <code>risk.py</code>, the paper-only boundary in <code>broker.py</code>, and the veto-only / tighten-only bounds in <code>overlay.py</code> and <code>brain.py</code>.</p></div>
+</div>
+
+<footer>
+  <span>KEEL · honest autonomous trading machine</span>
+  <span>docs/system-map.mmd is the diagram source · paper-only</span>
+</footer>
+</div>
+
+<script>
+// Optional: honor a ?theme=dark|light override; otherwise the OS theme is used.
+(function(){var t=new URLSearchParams(location.search).get("theme");
+if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t);})();
+</script>
+</body>
+</html>
