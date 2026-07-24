@@ -187,6 +187,31 @@ def _cmd_brain(args) -> int:
     return 0
 
 
+def _cmd_doctor(args) -> int:
+    from keel.doctor import diagnose
+    from keel.env import load_env
+
+    load_env()
+    r = diagnose(args.dir, check_network=args.network)
+    print("=== Keel doctor ===")
+    print(f"data symbols        : {r['data_symbols']}")
+    print(f"mode / timeframe    : {r['config']['mode']} / {r['config']['timeframe']}")
+    print(f"risk per trade      : {r['config']['risk_fraction']:.2%}")
+    print(f"qualitative limb    : {'on' if r['config']['qualitative_limb'] else 'off'}")
+    print(f"validated survivors : {r['roster']['validated_survivors']}")
+    print(f"champion            : {r['roster']['champion'] or 'none'}")
+    print(
+        f"proven edge (OOS)   : {r['edge']['has_proven_edge']} "
+        f"(p={r['edge']['last_pvalue']}, folds={r['edge']['folds']})"
+    )
+    print(f"brain memories      : {r['brain_memory']}")
+    if args.network:
+        print(f"broker              : {r['broker']}")
+        print(f"llm                 : {r['llm']}")
+    print(f"\nVERDICT: {r['verdict']}")
+    return 0
+
+
 def _cmd_train(args) -> int:
     from keel.env import load_env
     from keel.training import run_training
@@ -341,6 +366,11 @@ def main(argv: list[str] | None = None) -> int:
     p_wf.add_argument("--train", type=int, default=60, help="training sessions per fold")
     p_wf.add_argument("--test", type=int, default=20, help="out-of-sample sessions per fold")
     p_wf.set_defaults(func=_cmd_walkforward)
+
+    p_doc = sub.add_parser("doctor", help="report the whole machine's honest state")
+    p_doc.add_argument("--dir", default="data")
+    p_doc.add_argument("--network", action="store_true", help="also ping broker + LLM")
+    p_doc.set_defaults(func=_cmd_doctor)
 
     p_br = sub.add_parser("brain", help="run one AI reasoning pass over the system state")
     p_br.add_argument("--dir", default="data")

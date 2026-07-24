@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "keel"
-version = "0.1.0"
-description = "Small, honest trading-research kit: PIT data, walk-forward backtest, real statistics"
+version = "0.2.0"
+description = "Honest autonomous trading machine: whole-market scan, per-moment strategy selection, walk-forward-gated edge, a Keel-only AI brain, and a qualitative veto limb — paper-only"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.11"
