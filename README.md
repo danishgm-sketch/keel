@@ -10,7 +10,8 @@ evidence-gated path is in **[ROADMAP.md](ROADMAP.md)**.
 
 **See the whole machine at a glance:** open **[`docs/system-map.html`](docs/system-map.html)**
 in any browser — a self-contained, offline wireframe kept in step with the code.
-The written companion is **[ARCHITECTURE.md](ARCHITECTURE.md)**.
+The full written reference is **[PROJECT.md](PROJECT.md)**; the architecture study
+map is **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
 ## What it is (today)
 
