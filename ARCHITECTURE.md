@@ -146,6 +146,41 @@ a feature, not a failure.
 
 ---
 
+## 5b. Keel Intelligence — the closed-domain shadow runtime
+
+`keel.intelligence` is a machine system whose only world is Keel. It is the
+disciplined answer to "put an AI in charge": deploy a learning system that can
+be **observed and challenged** without ever being able to raise risk.
+
+- **Only inputs:** a validated `KeelState` (`state_builder.py`). Missing or
+  unconfirmed safety facts are recorded as degraded — an unconfirmed stop means
+  *unprotected*, an unconfirmed broker read means *not reconciled*.
+- **Only outputs:** a bounded `KeelActionProposal` — a posture plus
+  reduction-only multipliers in `[0,1]`, scoped to certified strategies. It
+  cannot express "increase risk".
+- **Only authority:** an expiring `AuthorityGrant`. The pure, fail-closed
+  validator (`authority.py`) refuses any proposal that mismatches the deployed
+  model/state, is expired, escalates above the deterministic baseline
+  (`baseline.py`), exceeds a ceiling, or names an uncertified strategy — and
+  applies the baseline instead, with a specific `ReasonCode`.
+- **Shadow mode (default):** the runtime (`runtime.py`) records the model
+  proposal but the **applied action is always the baseline**. The old direct
+  posture application is gated behind `config.legacy_posture_apply` (off by
+  default). Nothing the AI says touches `max_positions`, `max_new_per_day`, the
+  risk fraction, strategy activation, or the broker.
+- **Durable truth:** `keel.operations.database` (SQLite, WAL, migrations,
+  single-writer-under-lock) records every state, decision, episode, and
+  incident; `journal.py` is a tamper-evident hash chain. Verify it with
+  `keel intelligence verify-journal`.
+
+Learning is confined to the durable **episode** record: the system may only
+learn from its own recorded outcomes under evidence-gated rules — never from an
+adjacent market move it never acted on. See `KEEL_V1_MILESTONE_1.md` for the
+shipped contract and operating guide (and `KEEL_V1_BUILD_PACKAGE.md` for the
+full v1 product programme).
+
+---
+
 ## 6. How to study, better, or remove things
 
 - **Add a strategy:** implement the `Strategy` contract in `strategies.py`, add it

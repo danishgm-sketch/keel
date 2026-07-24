@@ -190,7 +190,24 @@ footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--edge);font-fa
   <span class="step go">yes, repeatedly → earns size</span>
 </div>
 
-<h2>5 · The code, module by module</h2>
+<h2>5 · Keel Intelligence — the closed-domain shadow runtime</h2>
+<p class="sub">A machine intelligence whose only world is Keel. It observes and records; it cannot move the wheel. Deployed inference is a bounded observer, not an operator.</p>
+<div class="chain">
+  <span class="step">canonical <b>KeelState</b></span><span class="to">→</span>
+  <span class="step acc">deterministic baseline</span><span class="to">→</span>
+  <span class="step">authority validator</span><span class="to">→</span>
+  <span class="step">validated action (recorded)</span><span class="to">→</span>
+  <span class="step go">APPLIED = baseline</span>
+</div>
+<p class="loopnote">↺ A general LLM may only enter as a <b>shadow challenger</b>: its proposal is untrusted input, bound to the exact state, checked fail-closed, and can only ever <b>reduce</b> risk. In shadow mode the applied action is always the deterministic baseline — the model is recorded, never obeyed.</p>
+<div class="feeds">
+  <div class="feed bound"><p class="h">Only inputs: a validated KeelState</p><p>Missing or unconfirmed safety facts are recorded as degraded — never assumed healthy. An unconfirmed stop means <b>unprotected</b>; an unconfirmed broker read means <b>not reconciled</b>.</p></div>
+  <div class="feed bound"><p class="h">Only authority: an expiring grant</p><p>Every proposal must match the deployed model + state, sit within reduction-only ceilings, and stay in certified scope. Invalid, stale, or excessive → fall back to baseline.</p></div>
+  <div class="feed bound"><p class="h">Durable truth</p><p>SQLite (WAL, foreign keys, migrations) + a tamper-evident hash-chained journal + incidents. <code>keel intelligence verify-journal</code> proves the record was not altered.</p></div>
+</div>
+<p class="loopnote">Why an adjacent equity move is <b>not</b> a training signal: the only ground truth this system may learn from is its own recorded outcomes under evidence-gated rules — not correlated market noise it never acted on. Safety language here is scoped to Keel: "cannot increase risk" means it cannot raise a posture, loosen a limit, or place an order — by construction, not by good behaviour.</p>
+
+<h2>6 · The code, module by module</h2>
 <div class="tablewrap"><table>
 <thead><tr><th>Module</th><th>Its job, in plain terms</th></tr></thead>
 <tbody>
@@ -207,12 +224,13 @@ footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--edge);font-fa
 <tr><td class="m">decay · riskbudget · stress</td><td>Auto-retire fading edges; portfolio exposure/drawdown limits; honest gap-aware stress tests.</td></tr>
 <tr><td class="m">scanner · catalysts · overlay</td><td>Whole-market liquidity ranking, the news feed, and the veto-only qualitative limb.</td></tr>
 <tr><td class="m">brain · knowledge · training · synthesize</td><td>The Keel-only AI, its constitution, the outcome-graded training loop, and safe self-writing (bounded ensemble specs).</td></tr>
-<tr><td class="m">broker · trader · service</td><td>Paper client (server-side stops), the live loop body, and the always-on orchestrator.</td></tr>
+<tr><td class="m">intelligence · operations</td><td>The closed-domain shadow runtime: canonical contracts, state builder, deterministic baseline, authority validator, shadow bridge; plus SQLite durable truth, incidents, order-intent idempotency.</td></tr>
+<tr><td class="m">broker · trader · service</td><td>Paper client (server-side stops), the live loop body, and the always-on orchestrator (now runs the shadow runtime each cycle).</td></tr>
 <tr><td class="m">ui · app · doctor · briefing</td><td>The watch-only monitor, the desktop launcher, one-command status, and the three-question briefing.</td></tr>
 </tbody>
 </table></div>
 
-<h2>6 · To study, better, or remove</h2>
+<h2>7 · To study, better, or remove</h2>
 <p class="sub">One rule for every change: <b>does it let the machine risk money on something unproven?</b> If yes, it is wrong — however clever. If no, improve away.</p>
 <div class="rules">
   <div class="rule change"><h3>Fair game — improve freely</h3><p>Add a strategy (<code>strategies.py</code> → <code>VARIANTS</code>), change what “best now” means (<code>meta._score</code>), tune the veto (<code>overlay.py</code>), reshape the UI. Re-validate with <code>keel walkforward</code>.</p></div>

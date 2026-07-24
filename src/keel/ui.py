@@ -181,6 +181,31 @@ function brainPanel(b){if(!b)return '';
     <div class="statusrow">${pp}<span class="pill dim">regime: ${r.regime||'?'}</span>
       <span class="pill dim">favor: ${fav}</span><span class="pill dim">avoid: ${avo}</span></div>
     <div class="muted">${r.rationale||''}</div></div>`;}
+function intelPanel(x){if(!x)return '';
+  const modePill='<span class="pill dim">SHADOW MODE</span>';
+  const legacy=x.legacy_posture_apply?'<span class="pill off">legacy apply ON</span>':'<span class="pill on">limits untouched</span>';
+  const db=x.database_healthy?'<span class="pill on">db healthy</span>':'<span class="pill off">db degraded</span>';
+  const jr=x.journal_healthy?'<span class="pill on">journal intact</span>':'<span class="pill off">journal broken</span>';
+  const inc=(x.open_incidents||0)>0?`<span class="pill off">${x.open_incidents} incident(s)</span>`:'<span class="pill on">no incidents</span>';
+  if(!x.available)return `<div class="panel"><h3>Keel Intelligence — closed-domain shadow runtime</h3>
+    <div class="statusrow">${modePill}${legacy}${db}${jr}${inc}</div>
+    <div class="note">The intelligence runtime observes each cycle and records an auditable decision. It never changes trading limits or places orders. No observation recorded yet.</div></div>`;
+  const bl=x.baseline_posture||'?';const prop=x.proposal_posture||'—';const val=x.validated_posture||'?';
+  const applied=x.applied_posture||'?';const src=x.validated_source||'?';
+  const valid=x.validated_valid?'<span class="pill on">accepted</span>':'<span class="pill off">rejected → baseline</span>';
+  const comp=x.completeness!=null?(x.completeness*100).toFixed(0)+'%':'?';
+  const flags=(x.quality_flags||[]).map(f=>`<span class="pill dim">${f}</span>`).join('')||'<span class="pill on">complete</span>';
+  const codes=(x.reason_codes||[]).slice(0,6).join(', ')||'OK';
+  return `<div class="panel"><h3>Keel Intelligence — closed-domain shadow runtime</h3>
+    <div class="statusrow">${modePill}<span class="pill dim">bundle: ${x.model_bundle||'none'}</span>${legacy}${db}${jr}${inc}</div>
+    <div class="statusrow" style="margin-top:8px">
+      <span class="pill dim">baseline: ${bl}</span>
+      <span class="pill dim">proposal: ${prop}</span>
+      <span class="pill dim">validated: ${val} (${src})</span>${valid}
+      <span class="pill on">APPLIED: ${applied}</span></div>
+    <div class="statusrow" style="margin-top:8px"><span class="pill dim">state completeness: ${comp}</span>${flags}</div>
+    <div class="muted" style="margin-top:6px">reasons: ${codes}</div>
+    <div class="note">Shadow: the deterministic baseline is what actually governs trading. Any model proposal is recorded and validated fail-closed, but can only ever <em>reduce</em> risk — never raise it.</div></div>`;}
 function overlayPanel(o){if(!o)return '';
   const avoid=o.avoid||[];const notes=o.notes||{};
   if(!avoid.length)return `<div class="panel"><h3>Qualitative limb — news &amp; catalyst veto</h3>
@@ -213,6 +238,7 @@ async function poll(){let r;try{r=await (await fetch('/api/live/status')).json()
      <div class="card"><div class="k">Market scanned</div><div class="v">${(r.universe_size||0).toLocaleString()}</div></div>
      <div class="card"><div class="k">Candidates now</div><div class="v">${cand.length}</div></div>
    </div>
+   ${intelPanel(r.intelligence)}
    ${brainPanel(r.brain)}
    ${overlayPanel(r.overlay)}
    <div class="grid2">

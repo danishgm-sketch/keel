@@ -34,6 +34,24 @@ flowchart TD
   N --> O["Lessons folded back into the brain"]
   O --> L
   P["News feed: catalysts.py"] --> F
+
+  %% --- Keel Intelligence v1: closed-domain SHADOW runtime (observe only) ---
+  I --> S1["Build canonical KeelState (missing safety = degraded)"]
+  S1 --> S2["Deterministic baseline policy (fail-closed posture)"]
+  S1 -.->|"untrusted proposal"| S3["Shadow challenger: general LLM adapter"]
+  S3 -.-> S4{"Authority validator: bound to state, no escalation, expiring grant"}
+  S2 --> S4
+  S4 -->|"invalid / stale / excessive"| S2
+  S4 -->|"reduction-only, in-scope"| S5["Validated action (recorded)"]
+  S2 --> S6["APPLIED = baseline (shadow never applies model)"]
+  S5 -.->|"recorded, NOT applied"| S6
+  S6 --> S7["SQLite durable truth + tamper-evident journal + incidents"]
+  S7 --> S8["CLI / UI status: baseline vs proposal vs applied, reasons"]
+
+  style S2 fill:#123,stroke:#5ec8d4,color:#dfe
+  style S4 fill:#201,stroke:#e3a008,color:#fed
+  style S6 fill:#123,stroke:#3fb950,color:#dfe
+  style S7 fill:#112,stroke:#57c7d4,color:#dfe
   style G fill:#123,stroke:#5ec8d4,color:#dfe
   style H fill:#123,stroke:#3fb950,color:#dfe
   style J fill:#123,stroke:#e3a008,color:#fed
