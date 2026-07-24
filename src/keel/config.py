@@ -44,6 +44,7 @@ class Config:
     top_n: int = 40  # candidates carried from the scan into the trader
     min_price: float = 3.0
     min_dollar_volume: float = 5_000_000.0
+    qualitative: bool = True  # the parallel limb: news/catalyst veto of entries
     autostart_armed: bool = True  # paper only — arms the paper loop on launch
     feed: str = "iex"
 

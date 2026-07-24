@@ -92,6 +92,21 @@ again out-of-sample. Survivors are written to `roster.json`; the champion become
 what the live bot runs. If nothing survives, there's no champion — and that's the
 honest, correct outcome. It never rewrites risk management or tunes to noise.
 
+### The qualitative limb (parallel to the quant engine)
+
+Trades are driven by the quantitative engine — but a second, **parallel limb**
+runs alongside it on the qualitative side: news, earnings, rumors, catalysts. It
+reads recent headlines (`catalysts.py`, Alpaca news) for the current candidates
+and produces a **veto list** the trader honours (`overlay.py`).
+
+The boundary is deliberate and absolute: **the qualitative limb can only *veto*,
+never *create*.** Entry signals come solely from the validated quantitative
+playbook — "news alpha" can't be proven with the same rigor, so it is never
+allowed to open a trade. What it *can* do is keep the bot out of the landmines a
+chart can't see: an imminent earnings print, a halt, an M&A rumor, a regulatory
+headline. It removes risk; it never manufactures a position. The monitor shows
+which names it's standing aside from and why. Toggle with `qualitative` in config.
+
 ### The AI brain (a local open-source LLM, woven in)
 
 Keel and an open-source LLM are one program. A local reasoning model — **Qwen3**

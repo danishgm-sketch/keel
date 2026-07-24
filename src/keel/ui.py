@@ -181,6 +181,14 @@ function brainPanel(b){if(!b)return '';
     <div class="statusrow">${pp}<span class="pill dim">regime: ${r.regime||'?'}</span>
       <span class="pill dim">favor: ${fav}</span><span class="pill dim">avoid: ${avo}</span></div>
     <div class="muted">${r.rationale||''}</div></div>`;}
+function overlayPanel(o){if(!o)return '';
+  const avoid=o.avoid||[];const notes=o.notes||{};
+  if(!avoid.length)return `<div class="panel"><h3>Qualitative limb — news &amp; catalyst veto</h3>
+    <span class="pill on">CLEAR</span><span class="note">No candidates flagged for near-term event risk. (This limb can only veto entries, never create them.)</span></div>`;
+  const rows=avoid.map(s=>`<tr><td>${s}</td><td class="muted">${notes[s]||'flagged'}</td></tr>`).join('');
+  return `<div class="panel"><h3>Qualitative limb — news &amp; catalyst veto</h3>
+    <span class="pill off">${avoid.length} vetoed</span>
+    <table style="margin-top:10px"><thead><tr><th>Ticker</th><th>Why the bot is standing aside</th></tr></thead><tbody>${rows}</tbody></table></div>`;}
 async function poll(){let r;try{r=await (await fetch('/api/live/status')).json();}catch(e){return;}
   const m=document.getElementById('main');
   if(!r.enabled){m.innerHTML=`<div class="panel"><span class="pill dim">BOT OFFLINE</span>
@@ -206,6 +214,7 @@ async function poll(){let r;try{r=await (await fetch('/api/live/status')).json()
      <div class="card"><div class="k">Candidates now</div><div class="v">${cand.length}</div></div>
    </div>
    ${brainPanel(r.brain)}
+   ${overlayPanel(r.overlay)}
    <div class="grid2">
      <div class="panel"><h3>Open positions</h3><table><thead><tr><th>Sym</th><th>Qty</th><th>Entry</th><th>uP&L</th></tr></thead><tbody>${posRows}</tbody></table></div>
      <div class="panel"><h3>Today's activity (the bot's decisions)</h3><table><thead><tr><th>Time</th><th>Event</th><th>Sym</th><th>Via / why</th></tr></thead><tbody>${jrows}</tbody></table></div>

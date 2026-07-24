@@ -51,6 +51,7 @@ class LiveTrader:
     armed: bool = False
     stops: dict[str, float] = field(default_factory=dict)
     lanes: dict[str, str] = field(default_factory=dict)
+    blocklist: set[str] = field(default_factory=set)  # qualitative-limb veto (no new entries)
     _strategy: Strategy | None = None
     _last_error: str | None = None
 
@@ -142,7 +143,7 @@ class LiveTrader:
                 pos_view = Position(avg, self.stops.get(sym, 0.0), 1, len(bars) - 1)
             decision = strat.on_bar(bars, pos_view)
 
-            if isinstance(decision, Enter) and not held:
+            if isinstance(decision, Enter) and not held and sym not in self.blocklist:
                 room = len(positions) < self.config.max_positions and (
                     new_today < self.config.max_new_per_day
                 )
@@ -183,6 +184,7 @@ class LiveTrader:
             "market_open": market_open,
             "strategy": self.config.strategy,
             "candidates": len(self.config.watchlist),
+            "blocked": sorted(self.blocklist),
             "open_stops": dict(self.stops),
             "trades_today": self._new_today(),
             "equity": equity,

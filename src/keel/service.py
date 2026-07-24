@@ -35,6 +35,7 @@ class LiveService:
         self._universe_day: str | None = None
         self._base_limits = (self.config.max_positions, self.config.max_new_per_day)
         self.latest_brain: dict = {"available": False}
+        self.latest_overlay: dict = {"avoid": [], "notes": {}}
         self.last_status: dict = {"note": "starting"}
 
     def _ensure_broker(self) -> None:
@@ -119,6 +120,28 @@ class LiveService:
         except Exception as e:
             self._last_error(f"brain error: {e}")
 
+    def _run_overlay(self) -> None:
+        """The qualitative parallel limb: read candidate news and set the trader's
+        veto blocklist. It can only remove names from fresh entry, never add."""
+        if not self.config.qualitative or self.trader is None:
+            return
+        try:
+            from keel.catalysts import fetch_news, news_digest
+            from keel.llm import pick_provider
+            from keel.overlay import assess
+
+            candidates = list(self.config.watchlist)[: self.config.top_n]
+            if not candidates:
+                return
+            digests = news_digest(fetch_news(candidates))
+            result = assess(pick_provider(), digests, set(candidates))
+            self.latest_overlay = result
+            self.trader.blocklist = set(result["avoid"])
+            if result["avoid"]:
+                self.journal.write("qualitative_veto", avoid=result["avoid"])
+        except Exception as e:
+            self._last_error(f"overlay error: {e}")
+
     def _last_error(self, msg: str) -> None:
         self.last_status = {**self.last_status, "note": msg}
 
@@ -137,7 +160,8 @@ class LiveService:
             try:
                 if time.time() - self._last_scan >= self.config.scan_seconds or not self._bars:
                     self._scan()
-                    self._run_brain()  # AI reads the fresh state and sets posture
+                    self._run_brain()  # quantitative AI: reads state, sets posture
+                    self._run_overlay()  # qualitative limb: news veto of entries
                     self._last_scan = time.time()
                 self.last_status = self.trader.tick()
             except Exception as e:
@@ -180,6 +204,7 @@ class LiveService:
             },
             "last": self.last_status,
             "brain": self.latest_brain,
+            "overlay": self.latest_overlay,
             "journal_today": self.journal.today()[-50:],
         }
         if self.broker is not None:
