@@ -5,6 +5,11 @@ This is the study map. It explains what every part does, how they connect, and
 dumbed-down: if you read this top to bottom you can modify any part with
 confidence.
 
+> **Diagram source of truth:** `docs/system-map.mmd` holds the canonical Mermaid
+> for the master board and is updated in the same change as any architecture
+> change. The [FigJam board](https://www.figma.com/board/JBwxqSeWYokO3w7vNz31GH)
+> is a *render* of that file — regenerate it from the file whenever it changes.
+
 The one idea that governs everything: **Keel is built to refuse a false edge.**
 Trading systems don't usually fail from lack of cleverness — they fail because
 they fool themselves into betting on noise. So every part of Keel is arranged so

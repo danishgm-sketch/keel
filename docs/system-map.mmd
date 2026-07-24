@@ -1,0 +1,39 @@
+%% Keel — System Map (canonical source of the FigJam board)
+%%
+%% THIS FILE IS THE SOURCE OF TRUTH for the Keel architecture diagram.
+%% Update it in the SAME change that alters the architecture, so it is never
+%% stale. The FigJam board is a render of this file: regenerate it with the
+%% Figma connector's generate_diagram tool whenever this file changes.
+%%
+%% Board (claim/latest): https://www.figma.com/board/JBwxqSeWYokO3w7vNz31GH
+%%
+%% Convention:
+%%   solid arrow  = data / control flow
+%%   dotted arrow = safety-bounded feedback (can only tighten risk or add proven)
+
+flowchart TD
+  A["Alpaca market data: bars, snapshots, news"] --> B["Scanner: rank whole market by liquidity"]
+  B --> C["Top candidates + recent bars"]
+  C --> D["Meta-brain: pick best PROVEN strategy per symbol, per moment"]
+  D --> E{"Entry signal?"}
+  E -->|"no"| C
+  E -->|"yes"| F{"Qualitative limb: news / earnings veto?"}
+  F -->|"vetoed"| C
+  F -->|"clear"| G["Risk sizing: 1% of equity from the stop (constant)"]
+  G --> H["Broker: Alpaca PAPER order (live money disabled in code)"]
+  H --> I["Journal: every decision, append-only"]
+  I --> J["Walk-forward gate: is there edge, out-of-sample?"]
+  J --> K["Edge ledger: the truth over time"]
+  K -->|"promote proven only"| D
+  I --> L["AI brain: reads all state, Keel-only LLM"]
+  L -->|"defensive posture TIGHTENS risk only"| G
+  L --> M["Remember decision"]
+  M --> N["Grade by measured outcome"]
+  N --> O["Lessons folded back into the brain"]
+  O --> L
+  P["News feed: catalysts.py"] --> F
+  style G fill:#123,stroke:#5ec8d4,color:#dfe
+  style H fill:#123,stroke:#3fb950,color:#dfe
+  style J fill:#123,stroke:#e3a008,color:#fed
+  style F fill:#201,stroke:#e3a008,color:#fed
+  style L fill:#112,stroke:#57c7d4,color:#dfe
