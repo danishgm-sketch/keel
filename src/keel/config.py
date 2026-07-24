@@ -47,6 +47,10 @@ class Config:
     qualitative: bool = True  # the parallel limb: news/catalyst veto of entries
     autostart_armed: bool = True  # paper only — arms the paper loop on launch
     feed: str = "iex"
+    # Legacy compatibility: when True, the old brain posture directly mutates the
+    # live trading limits (max_positions / max_new_per_day). Defaults OFF — the
+    # v1 intelligence runtime observes in shadow mode and never touches limits.
+    legacy_posture_apply: bool = False
 
     def clamp(self) -> Config:
         # Risk fraction is a guarded constant range; nothing can push it wild.

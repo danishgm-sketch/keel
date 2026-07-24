@@ -268,6 +268,69 @@ def _cmd_doctor(args) -> int:
     return 0
 
 
+def _cmd_intelligence(args) -> int:
+    import json as _json
+    from pathlib import Path
+
+    from keel.journal import verify_journal
+    from keel.operations.database import open_database
+
+    action = args.action
+    data_dir = Path(args.dir)
+
+    if action == "shadow":
+        # Run one live shadow pass through the full runtime (observe, never apply).
+        from keel.env import load_env
+        from keel.service import LiveService
+
+        load_env()
+        svc = LiveService(data_dir)
+        svc._ensure_broker()
+        svc._run_intelligence()
+        print("=== Keel Intelligence — shadow pass ===")
+        print(_json.dumps(svc.latest_intel, indent=2, default=str))
+        return 0
+
+    if action == "verify-journal":
+        ok, detail = verify_journal(data_dir / "journal.jsonl")
+        print(f"journal: {'INTACT' if ok else 'TAMPERED'} — {detail}")
+        return 0 if ok else 1
+
+    db = open_database(data_dir)
+    try:
+        if action == "status":
+            print("=== Keel Intelligence — status ===")
+            print("mode              : shadow (AI observes, never applies)")
+            print(f"schema version    : {db.schema_version()}")
+            print(f"database healthy  : {db.healthy()}")
+            ok, detail = verify_journal(data_dir / "journal.jsonl")
+            print(f"journal           : {'INTACT' if ok else 'TAMPERED'} — {detail}")
+            print(f"open incidents    : {db.count_open_incidents()}")
+            recent = db.recent_decisions(limit=5)
+            print(f"recent decisions  : {len(recent)}")
+            for d in recent:
+                print(
+                    f"  - {d['decision_id'][:12]} posture={d['validated_posture']} "
+                    f"source={d['validated_source']} valid={bool(d['valid'])}"
+                )
+        elif action == "list-incidents":
+            rows = db.list_incidents(status=args.status)
+            print(f"=== incidents ({args.status or 'ALL'}): {len(rows)} ===")
+            for i in rows:
+                print(f"  [{i['severity']}] {i['category']} — {i['message']} ({i['status']})")
+        elif action == "show-state":
+            row = db.get_state(args.id) if args.id else None
+            print(_json.dumps(row, indent=2, default=str) if row else "state not found")
+            return 0 if row else 1
+        elif action == "show-decision":
+            row = db.get_decision(args.id) if args.id else None
+            print(_json.dumps(row, indent=2, default=str) if row else "decision not found")
+            return 0 if row else 1
+    finally:
+        db.close()
+    return 0
+
+
 def _cmd_train(args) -> int:
     from keel.env import load_env
     from keel.training import run_training
@@ -446,6 +509,25 @@ def main(argv: list[str] | None = None) -> int:
     p_br = sub.add_parser("brain", help="run one AI reasoning pass over the system state")
     p_br.add_argument("--dir", default="data")
     p_br.set_defaults(func=_cmd_brain)
+
+    p_intel = sub.add_parser(
+        "intelligence", help="Keel Intelligence shadow runtime — observe, record, verify"
+    )
+    p_intel.add_argument(
+        "action",
+        choices=[
+            "status",
+            "shadow",
+            "verify-journal",
+            "list-incidents",
+            "show-state",
+            "show-decision",
+        ],
+    )
+    p_intel.add_argument("id", nargs="?", default=None, help="state/decision id for show-*")
+    p_intel.add_argument("--dir", default="data")
+    p_intel.add_argument("--status", default=None, help="incident status filter (OPEN/…)")
+    p_intel.set_defaults(func=_cmd_intelligence)
 
     p_tr2 = sub.add_parser(
         "train", help="grade the brain's past calls, learn lessons, export a Keel-only model"
